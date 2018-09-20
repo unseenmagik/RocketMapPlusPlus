@@ -109,7 +109,7 @@ class Pogom(Flask):
 
         #print("request: " + request)
         print("request.args: " + json.dumps(request.args.to_dict()))
-        print("request.data: " + json.dumps(request.data.to_dict()))
+        print("request.data: " + request.data)
         print("request.get_json(): " + json.dumps(request.get_json()))
         if pokemon:
             print("pokemon: " + pokemon)
