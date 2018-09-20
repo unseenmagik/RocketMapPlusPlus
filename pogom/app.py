@@ -87,7 +87,7 @@ class Pogom(Flask):
         self.route("/submit_token", methods=['POST'])(self.submit_token)
         self.route("/get_stats", methods=['GET'])(self.get_account_stats)
         self.route("/robots.txt", methods=['GET'])(self.render_robots_txt)
-        self.route("/webhook", methods=['GET'])(self.webhook)
+        self.route("/webhook", methods=['POST'])(self.webhook)
         self.route("/serviceWorker.min.js", methods=['GET'])(
             self.render_service_worker_js)
 
@@ -107,53 +107,7 @@ class Pogom(Flask):
         pokemon = request.args.get('pokemon')
         gyms = request.args.get('gyms')
 
-        pokemon_list = pokemon
-
-        # Allow client to specify location.
-        lat = request.args.get('lat', self.current_location[0], type=float)
-        lon = request.args.get('lon', self.current_location[1], type=float)
-        origin_point = LatLng.from_degrees(lat, lon)
-
-        # for pokemon in convert_pokemon_list(
-        #         Pokemon.get_active(None, None, None, None)):
-        #     pokemon_point = LatLng.from_degrees(pokemon['latitude'],
-        #                                         pokemon['longitude'])
-        #     diff = pokemon_point - origin_point
-        #     diff_lat = diff.lat().degrees
-        #     diff_lng = diff.lng().degrees
-        #     direction = (('N' if diff_lat >= 0 else 'S')
-        #                  if abs(diff_lat) > 1e-4 else '') +\
-        #                 (('E' if diff_lng >= 0 else 'W')
-        #                  if abs(diff_lng) > 1e-4 else '')
-        #     entry = {
-        #         'id': pokemon['pokemon_id'],
-        #         'name': pokemon['pokemon_name'],
-        #         'card_dir': direction,
-        #         'distance': int(origin_point.get_distance(
-        #             pokemon_point).radians * 6366468.241830914),
-        #         'time_to_disappear': '%d min %d sec' % (divmod(
-        #             (pokemon['disappear_time'] - datetime.utcnow()).seconds,
-        #             60)),
-        #         'disappear_time': pokemon['disappear_time'],
-        #         'disappear_sec': (
-        #             pokemon['disappear_time'] - datetime.utcnow()).seconds,
-        #         'latitude': pokemon['latitude'],
-        #         'longitude': pokemon['longitude']
-        #     }
-        #     pokemon_list.append((entry, entry['distance']))
-#        pokemon_list = [y[0] for y in sorted(pokemon_list, key=lambda x: x[1])]
-        args = get_args()
-        visibility_flags = {
-            'custom_css': args.custom_css,
-            'custom_js': args.custom_js
-        }
-
-        return render_template('mobile_list.html',
-                               pokemon_list=pokemon_list,
-                               origin_lat=lat,
-                               origin_lng=lon,
-                               show=visibility_flags
-                               )
+        print(pokemon)
 
     def render_inject_js(self):
         args = get_args()
