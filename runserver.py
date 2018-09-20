@@ -415,33 +415,29 @@ def main():
 
         log.debug('Starting a %s search thread', args.scheduler)
 
-    if args.no_server:
-        # This loop allows for ctrl-c interupts to work since flask won't be
-        # holding the program open.
+    if args.cors:
+        CORS(app)
+
+    # No more stale JS.
+    init_cache_busting(app)
+
+    app.set_control_flags(control_flags)
+    app.set_heartbeat_control(heartbeat)
+    app.set_location_queue(new_location_queue)
+    ssl_context = None
+    if (args.ssl_certificate and args.ssl_privatekey and
+            os.path.exists(args.ssl_certificate) and
+            os.path.exists(args.ssl_privatekey)):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        ssl_context.load_cert_chain(
+            args.ssl_certificate, args.ssl_privatekey)
+        log.info('Web server in SSL mode.')
+    if args.verbose:
+        app.run(threaded=True, use_reloader=False, debug=True,
+                host=args.host, port=args.port, ssl_context=ssl_context)
     else:
-        if args.cors:
-            CORS(app)
-
-        # No more stale JS.
-        init_cache_busting(app)
-
-        app.set_control_flags(control_flags)
-        app.set_heartbeat_control(heartbeat)
-        app.set_location_queue(new_location_queue)
-        ssl_context = None
-        if (args.ssl_certificate and args.ssl_privatekey and
-                os.path.exists(args.ssl_certificate) and
-                os.path.exists(args.ssl_privatekey)):
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-            ssl_context.load_cert_chain(
-                args.ssl_certificate, args.ssl_privatekey)
-            log.info('Web server in SSL mode.')
-        if args.verbose:
-            app.run(threaded=True, use_reloader=False, debug=True,
-                    host=args.host, port=args.port, ssl_context=ssl_context)
-        else:
-            app.run(threaded=True, use_reloader=False, debug=False,
-                    host=args.host, port=args.port, ssl_context=ssl_context)
+        app.run(threaded=True, use_reloader=False, debug=False,
+                host=args.host, port=args.port, ssl_context=ssl_context)
 
 
 def set_log_and_verbosity(log):
