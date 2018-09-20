@@ -103,16 +103,313 @@ class Pogom(Flask):
                                domain=args.manual_captcha_domain)
 
     def webhook(self):
-        pokestops = request.args.get('pokestops')
-        pokemon = request.args.get('pokemon')
-        gyms = request.args.get('gyms')
+        request_json = request.get_json()
+        pokestops = request_json.get('pokestops')
+        pokemon = request_json.get('pokemon')
+        gyms = request_json.get('gyms')
 
         #print("request: " + request)
-        print("request.args: " + json.dumps(request.args.to_dict()))
-        print("request.data: " + request.data)
-        print("request.get_json(): " + json.dumps(request.get_json()))
+        print("request.get_json(): " + json.dumps(request_json))
         if pokemon:
             print("pokemon: " + pokemon)
+
+        return 'ok'
+
+    def parse_map(self, pokemon_dict, pokestops_dict, gyms_dict):
+        pokemon = {}
+        pokestops = {}
+        gyms = {}
+        raids = {}
+        skipped = 0
+        filtered = 0
+        stopsskipped = 0
+        forts = []
+        forts_count = 0
+        wild_pokemon = []
+        wild_pokemon_count = 0
+        nearby_pokemon = 0
+        spawn_points = {}
+        scan_spawn_points = {}
+        sightings = {}
+        new_spawn_points = []
+        sp_id_list = []
+
+        now_secs = date_secs(now_date)
+
+        if pokemon_dict:
+            encounter_ids = [p.id for p in pokemon_dict]
+            # For all the wild Pokemon we found check if an active Pokemon is in
+            # the database.
+            with Pokemon.database().execution_context():
+                query = (Pokemon
+                         .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
+                         .where((Pokemon.disappear_time >= now_date) &
+                                (Pokemon.encounter_id << encounter_ids))
+                         .dicts())
+
+                # Store all encounter_ids and spawnpoint_ids for the Pokemon in
+                # query.
+                # All of that is needed to make sure it's unique.
+                encountered_pokemon = [
+                    (p['encounter_id'], p['spawnpoint_id']) for p in query]
+
+            for p in pokemon_dict:
+                spawn_id = p.spawn_id
+
+                sighting = {
+                    'encounter_id': p.id,
+                    'spawnpoint_id': spawn_id,
+                    'scan_time': now_date,
+                    'tth_secs': None
+                }
+
+                # Keep a list of sp_ids to return.
+                sp_id_list.append(spawn_id)
+
+                if ((p.id, spawn_id) in encountered_pokemon):
+                    # If Pokemon has been encountered before don't process it.
+                    skipped += 1
+                    continue
+
+                disappear_time = p.despawn_time
+
+                pokemon_id = p.type
+
+                # If this is an ignored pokemon, skip this whole section.
+                # We want the stuff above or we will impact spawn detection
+                # but we don't want to insert it, or send it to webhooks.
+                if args.ignorelist_file and pokemon_id in args.ignorelist:
+                    log.debug('Ignoring Pokemon id: %i.', pokemon_id)
+                    filtered += 1
+                    continue
+
+                printPokemon(pokemon_id, p.lat, p.lon,
+                             disappear_time)
+
+                # Scan for IVs/CP and moves.
+                pokemon_info = False
+
+                pokemon[p.id] = {
+                    'encounter_id': p.id,
+                    'spawnpoint_id': spawn_id,
+                    'pokemon_id': pokemon_id,
+                    'latitude': p.lat,
+                    'longitude': p.lon,
+                    'disappear_time': disappear_time,
+                    'individual_attack': None,
+                    'individual_defense': None,
+                    'individual_stamina': None,
+                    'move_1': None,
+                    'move_2': None,
+                    'cp': None,
+                    'cp_multiplier': None,
+                    'height': None,
+                    'weight': None,
+                    'gender': p.gender,
+                    'costume': p.costume,
+                    'form': p.form,
+                    'weather_boosted_condition': None
+
+                }
+
+                if 'pokemon' in args.wh_types:
+                    if (pokemon_id in args.webhook_whitelist or
+                        (not args.webhook_whitelist and pokemon_id
+                         not in args.webhook_blacklist)):
+                        wh_poke = pokemon[p.id].copy()
+                        wh_poke.update({
+                            'disappear_time': calendar.timegm(
+                                disappear_time.timetuple()),
+                            'last_modified_time': p.last_modified_timestamp_ms,
+                            'time_until_hidden_ms': p.time_till_hidden_ms,
+                            'verified': SpawnPoint.tth_found(sp),
+                            'seconds_until_despawn': seconds_until_despawn,
+                            'spawn_start': start_end[0],
+                            'spawn_end': start_end[1],
+                            'player_level': encounter_level
+                        })
+                        if wh_poke['cp_multiplier'] is not None:
+                            wh_poke.update({
+                                'pokemon_level': calc_pokemon_level(
+                                    wh_poke['cp_multiplier'])
+                            })
+                        wh_update_queue.put(('pokemon', wh_poke))
+
+        if pokestops_dict:
+            stop_ids = [f.pokestop_id for f in pokestops_dict]
+            if stop_ids:
+                with Pokemon.database().execution_context():
+                    query = (Pokestop.select(
+                        Pokestop.pokestop_id, Pokestop.last_modified).where(
+                            (Pokestop.pokestop_id << stop_ids)).dicts())
+                    encountered_pokestops = [(f['pokestop_id'], int(
+                        (f['last_modified'] - datetime(1970, 1,
+                                                       1)).total_seconds()))
+                                             for f in query]
+
+            for f in pokestops_dict:
+                if len(f.active_pokemon_id) > 0:
+                    lure_expiration = (datetime.utcfromtimestamp(
+                        f.last_modified / 1000.0) +
+                        timedelta(minutes=args.lure_duration))
+                    active_pokemon_id = f.active_pokemon_id[0]
+                else:
+                    lure_expiration, active_pokemon_id = None, None
+
+                if ((f.pokestop_id, int(f.last_modified / 1000.0))
+                        in encountered_pokestops):
+                    # If pokestop has been encountered before and hasn't
+                    # changed don't process it.
+                    stopsskipped += 1
+                    continue
+                pokestops[f.pokestop_id] = {
+                    'pokestop_id': f.pokestop_id,
+                    'enabled': f.enabled,
+                    'latitude': f.latitude,
+                    'longitude': f.longitude,
+                    'last_modified': datetime.utcfromtimestamp(
+                        f.last_modified / 1000.0),
+                    'lure_expiration': lure_expiration,
+                    'active_fort_modifier': active_pokemon_id
+                }
+
+                # Send all pokestops to webhooks.
+                if 'pokestop' in args.wh_types or (
+                        'lure' in args.wh_types and
+                        lure_expiration is not None):
+                    l_e = None
+                    if lure_expiration is not None:
+                        l_e = calendar.timegm(lure_expiration.timetuple())
+                    wh_pokestop = pokestops[f.id].copy()
+                    wh_pokestop.update({
+                        'pokestop_id': f.pokestop_id,
+                        'last_modified': f.last_modified,
+                        'lure_expiration': l_e,
+                    })
+                    wh_update_queue.put(('pokestop', wh_pokestop))
+
+        if gyms_dict:
+            {
+                "raidPokemon":145
+            }
+            stop_ids = [f.gym_id for f in gyms_dict]
+            for f in gyms_dict:
+                b64_gym_id = str(f.gym_id)
+                park = Gym.get_gyms_park(f.gym_id)
+
+                if 'gym' in args.wh_types:
+                    raid_active_until = 0
+                    raid_end_ms = f.raidEndMs
+
+                    # Explicitly set 'webhook_data', in case we want to change
+                    # the information pushed to webhooks.  Similar to above
+                    # and previous commits.
+                    wh_update_queue.put(('gym', {
+                        'gym_id':
+                            b64_gym_id,
+                        'team_id':
+                            f.team,
+                        'park':
+                            park,
+                        'guard_pokemon_id':
+                            f.guardingPokemonIdentifier,
+                        'slots_available':
+                            f.slotsAvailble,
+                        'total_cp':
+                            0,
+                        'enabled':
+                            f.enabled,
+                        'latitude':
+                            f.latitude,
+                        'longitude':
+                            f.longitude,
+                        'lowest_pokemon_motivation':
+                            0,
+                        'occupied_since':
+                            calendar.timegm(datetime.utcnow().timetuple()),
+                        'last_modified':
+                            f.lastModifiedTimestampMs,
+                        'raid_active_until':
+                            raid_active_until
+                    }))
+                gyms[f.gym_id] = {
+                    'gym_id':
+                        f.gym_id,
+                    'team_id':
+                        f.team,
+                    'park':
+                        park,
+                    'guard_pokemon_id':
+                        f.guardingPokemonIdentifier,
+                    'slots_available':
+                        f.slotsAvailble,
+                    'total_cp':
+                        0,
+                    'enabled':
+                        f.enabled,
+                    'latitude':
+                        f.latitude,
+                    'longitude':
+                        f.longitude,
+                    'last_modified':
+                        datetime.utcfromtimestamp(
+                            f.lastModifiedTimestampMs / 1000.0),
+                }
+
+                if f.raidPokemon > 0:
+                    raids[f.gym_id] = {
+                        'gym_id': f.gym_id,
+                        'level': 0,
+                        'spawn': datetime.utcfromtimestamp(
+                            f.lastModifiedTimestampMs / 1000.0)
+                        'start': datetime.utcfromtimestamp(
+                            f.lastModifiedTimestampMs / 1000.0)
+                        'end': datetime.utcfromtimestamp(
+                            f.raidEndMs / 1000.0)
+                        'pokemon_id': f.raidPokemon,
+                        'cp': None,
+                        'move_1': None,
+                        'move_2': None
+                    }
+
+                    if ('egg' in args.wh_types and
+                            raids[f.gym_id]['pokemon_id'] is None) or (
+                                'raid' in args.wh_types and
+                                raids[f.gym_id]['pokemon_id'] is not None):
+                        wh_raid = raids[f.gym_id].copy()
+                        wh_raid.update({
+                            'gym_id': b64_gym_id,
+                            'team_id': f.owned_by_team,
+                            'spawn': raid_info.raid_spawn_ms / 1000,
+                            'start': raid_info.raid_battle_ms / 1000,
+                            'end': raid_info.raid_end_ms / 1000,
+                            'latitude': f.latitude,
+                            'longitude': f.longitude
+                        })
+                        wh_update_queue.put(('raid', wh_raid))
+
+            # Helping out the GC.
+            del forts
+
+        log.info('Parsing found Pokemon: %d (%d filtered), nearby: %d, ' +
+                 'pokestops: %d, gyms: %d, raids: %d.',
+                 len(pokemon) + skipped,
+                 filtered,
+                 nearby_pokemon,
+                 len(pokestops) + stopsskipped,
+                 len(gyms),
+                 len(raids))
+
+        log.debug('Skipped Pokemon: %d, pokestops: %d.', skipped, stopsskipped)
+
+        if pokemon:
+            db_update_queue.put((Pokemon, pokemon))
+        if pokestops:
+            db_update_queue.put((Pokestop, pokestops))
+        if gyms:
+            db_update_queue.put((Gym, gyms))
+        if raids:
+            db_update_queue.put((Raid, raids))
 
         return 'ok'
 
