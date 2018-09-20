@@ -129,7 +129,7 @@ class Pogom(Flask):
         new_spawn_points = []
         sp_id_list = []
 
-        now_date = datetime.datetime.now()
+        now_date = datetime.now()
 
         now_secs = date_secs(now_date)
 
