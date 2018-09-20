@@ -107,7 +107,9 @@ class Pogom(Flask):
         pokemon = request.args.get('pokemon')
         gyms = request.args.get('gyms')
 
-        print(pokemon)
+        #print("request: " + request)
+        print("request.args: " + request.args)
+        print("pokemon: " + pokemon)
 
         return 'ok'
 
