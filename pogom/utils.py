@@ -25,8 +25,6 @@ from pprint import pformat
 from time import strftime
 from timeit import default_timer
 
-from pgoapi.hash_server import HashServer
-
 log = logging.getLogger(__name__)
 
 
@@ -865,7 +863,7 @@ def get_args():
     endpoint = legal_endpoints.get(hash_service, False)
     if endpoint:
         log.info('Using hash service: %s.', hash_service)
-        HashServer.endpoint = endpoint
+        #HashServer.endpoint = endpoint
 
     return args
 

@@ -184,6 +184,5 @@ def api_scan(lat, lng):
         })
     return jsonify({'responses': {'GET_MAP_OBJECTS': {'map_cells': cells}}})
 
-
 if __name__ == '__main__':
     app.run(threaded=True, debug=args.debug, host=args.host, port=args.port)

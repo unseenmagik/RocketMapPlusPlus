@@ -303,11 +303,11 @@ class HexSearch(BaseScheduler):
         if not self.locations:
             self.locations = self._generate_locations()
 
-        for location in self.locations:
-            # FUTURE IMPROVEMENT - For now, queues is assumed to have a single
-            # queue.
-            self.queues[0].put(location)
-            log.debug("Added location {}".format(location))
+#        for location in self.locations:
+#            # FUTURE IMPROVEMENT - For now, queues is assumed to have a single
+#            # queue.
+#            self.queues[0].put(location)
+#            log.debug("Added location {}".format(location))
         self.ready = True
 
 
@@ -443,11 +443,11 @@ class SpawnScan(BaseScheduler):
         # will change.
         self.locations = self._generate_locations()
 
-        for location in self.locations:
-            # FUTURE IMPROVEMENT - For now, queues is assumed to have a single
-            # queue.
-            self.queues[0].put(location)
-            log.debug("Added location {}".format(location))
+#        for location in self.locations:
+#            # FUTURE IMPROVEMENT - For now, queues is assumed to have a single
+#            # queue.
+#            self.queues[0].put(location)
+#            log.debug("Added location {}".format(location))
 
         # Clear the locations list so it gets regenerated next cycle.
         self.locations = []
@@ -696,205 +696,205 @@ class SpeedScan(HexSearch):
     def schedule(self):
         log.info('Refreshing queue')
         self.ready = False
-        now_date = datetime.utcnow()
-        self.refresh_date = now_date
-        self.refresh_ms = now_date.minute * 60 + now_date.second
-        self.queue_version += 1
-        old_q = deepcopy(self.queues[0])
-        queue = []
+        # now_date = datetime.utcnow()
+        # self.refresh_date = now_date
+        # self.refresh_ms = now_date.minute * 60 + now_date.second
+        # self.queue_version += 1
+        # old_q = deepcopy(self.queues[0])
+        # queue = []
 
-        # Measure the time it takes to refresh the queue
-        start = time.time()
+        # # Measure the time it takes to refresh the queue
+        # start = time.time()
 
-        # prefetch all scanned locations
-        scanned_locations = ScannedLocation.get_by_cellids(self.scans.keys())
+        # # prefetch all scanned locations
+        # scanned_locations = ScannedLocation.get_by_cellids(self.scans.keys())
 
-        # extract all spawnpoints into a dict with spawnpoint
-        # id -> spawnpoint for easy access later
-        cell_to_linked_spawn_points = (
-            ScannedLocation.get_cell_to_linked_spawn_points(
-                self.scans.keys(), self.location_change_date))
-        sp_by_id = {}
-        for sps in cell_to_linked_spawn_points.itervalues():
-            for sp in sps:
-                sp_by_id[sp['id']] = sp
+        # # extract all spawnpoints into a dict with spawnpoint
+        # # id -> spawnpoint for easy access later
+        # cell_to_linked_spawn_points = (
+        #     ScannedLocation.get_cell_to_linked_spawn_points(
+        #         self.scans.keys(), self.location_change_date))
+        # sp_by_id = {}
+        # for sps in cell_to_linked_spawn_points.itervalues():
+        #     for sp in sps:
+        #         sp_by_id[sp['id']] = sp
 
-        for cell, scan in self.scans.iteritems():
-            queue += ScannedLocation.get_times(scan, now_date,
-                                               scanned_locations)
-            queue += SpawnPoint.get_times(cell, scan, now_date,
-                                          self.args.spawn_delay,
-                                          cell_to_linked_spawn_points,
-                                          sp_by_id)
-        end = time.time()
+        # for cell, scan in self.scans.iteritems():
+        #     queue += ScannedLocation.get_times(scan, now_date,
+        #                                        scanned_locations)
+        #     queue += SpawnPoint.get_times(cell, scan, now_date,
+        #                                   self.args.spawn_delay,
+        #                                   cell_to_linked_spawn_points,
+        #                                   sp_by_id)
+        # end = time.time()
 
-        queue.sort(key=itemgetter('start'))
-        self.queues[0] = queue
-        self.ready = True
-        log.info('New queue created with %d entries in %f seconds', len(queue),
-                 (end - start))
-        # Avoiding refreshing the Queue when the initial scan is complete, and
-        # there are no spawnpoints in the hive.
-        if len(queue) == 0:
-            self.empty_hive = True
-        if old_q:
-            # Enclosing in try: to avoid divide by zero exceptions from
-            # killing overseer
-            try:
+        # queue.sort(key=itemgetter('start'))
+        # self.queues[0] = queue
+        # self.ready = True
+        # log.info('New queue created with %d entries in %f seconds', len(queue),
+        #          (end - start))
+        # # Avoiding refreshing the Queue when the initial scan is complete, and
+        # # there are no spawnpoints in the hive.
+        # if len(queue) == 0:
+        #     self.empty_hive = True
+        # if old_q:
+        #     # Enclosing in try: to avoid divide by zero exceptions from
+        #     # killing overseer
+        #     try:
 
-                # Possible 'done' values are 'Missed', 'Scanned', None, or
-                # number
-                Not_none_list = filter(lambda e: e.get(
-                    'done', None) is not None, old_q)
-                Missed_list = filter(lambda e: e.get(
-                    'done', None) == 'Missed', Not_none_list)
-                Scanned_list = filter(lambda e: e.get(
-                    'done', None) == 'Scanned', Not_none_list)
-                Timed_list = filter(lambda e: type(
-                    e['done']) is not str, Not_none_list)
-                spawns_timed_list = filter(
-                    lambda e: e['kind'] == 'spawn', Timed_list)
-                spawns_timed = len(spawns_timed_list)
-                bands_timed = len(
-                    filter(lambda e: e['kind'] == 'band', Timed_list))
-                spawns_all = spawns_timed + \
-                    len(filter(lambda e: e['kind'] == 'spawn', Scanned_list))
-                spawns_missed = len(
-                    filter(lambda e: e['kind'] == 'spawn', Missed_list))
+        #         # Possible 'done' values are 'Missed', 'Scanned', None, or
+        #         # number
+        #         Not_none_list = filter(lambda e: e.get(
+        #             'done', None) is not None, old_q)
+        #         Missed_list = filter(lambda e: e.get(
+        #             'done', None) == 'Missed', Not_none_list)
+        #         Scanned_list = filter(lambda e: e.get(
+        #             'done', None) == 'Scanned', Not_none_list)
+        #         Timed_list = filter(lambda e: type(
+        #             e['done']) is not str, Not_none_list)
+        #         spawns_timed_list = filter(
+        #             lambda e: e['kind'] == 'spawn', Timed_list)
+        #         spawns_timed = len(spawns_timed_list)
+        #         bands_timed = len(
+        #             filter(lambda e: e['kind'] == 'band', Timed_list))
+        #         spawns_all = spawns_timed + \
+        #             len(filter(lambda e: e['kind'] == 'spawn', Scanned_list))
+        #         spawns_missed = len(
+        #             filter(lambda e: e['kind'] == 'spawn', Missed_list))
 
-                band_percent = self.band_status()
-                kinds = {}
-                tth_ranges = {}
-                self.tth_found = 0
-                self.active_sp = 0
-                found_percent = 100.0
-                spawns_reached = 100.0
-                spawnpoints = SpawnPoint.select_in_hex_by_cellids(
-                    self.scans.keys(), self.location_change_date)
+        #         band_percent = self.band_status()
+        #         kinds = {}
+        #         tth_ranges = {}
+        #         self.tth_found = 0
+        #         self.active_sp = 0
+        #         found_percent = 100.0
+        #         spawns_reached = 100.0
+        #         spawnpoints = SpawnPoint.select_in_hex_by_cellids(
+        #             self.scans.keys(), self.location_change_date)
 
-                for sp in spawnpoints:
-                    if sp['missed_count'] > 5:
-                        continue
+        #         for sp in spawnpoints:
+        #             if sp['missed_count'] > 5:
+        #                 continue
 
-                    self.active_sp += 1
-                    self.tth_found += SpawnPoint.tth_found(sp)
+        #             self.active_sp += 1
+        #             self.tth_found += SpawnPoint.tth_found(sp)
 
-                    kind = sp['kind']
-                    kinds[kind] = kinds.get(kind, 0) + 1
-                    tth_range = str(int(round(
-                        ((sp['earliest_unseen'] - sp['latest_seen']) % 3600) /
-                        60.0)))
-                    tth_ranges[tth_range] = tth_ranges.get(tth_range, 0) + 1
+        #             kind = sp['kind']
+        #             kinds[kind] = kinds.get(kind, 0) + 1
+        #             tth_range = str(int(round(
+        #                 ((sp['earliest_unseen'] - sp['latest_seen']) % 3600) /
+        #                 60.0)))
+        #             tth_ranges[tth_range] = tth_ranges.get(tth_range, 0) + 1
 
-                tth_ranges['0'] = tth_ranges.get('0', 0) - self.tth_found
-                len_spawnpoints = len(spawnpoints) + (not len(spawnpoints))
+        #         tth_ranges['0'] = tth_ranges.get('0', 0) - self.tth_found
+        #         len_spawnpoints = len(spawnpoints) + (not len(spawnpoints))
 
-                log.info('Total Spawn Points found in hex: %d',
-                         len(spawnpoints))
-                log.info('Inactive Spawn Points found in hex: %d or %.1f%%',
-                         len(spawnpoints) - self.active_sp,
-                         (len(spawnpoints) -
-                          self.active_sp) * 100.0 / len_spawnpoints)
-                log.info('Active Spawn Points found in hex: %d or %.1f%%',
-                         self.active_sp,
-                         self.active_sp * 100.0 / len_spawnpoints)
+        #         log.info('Total Spawn Points found in hex: %d',
+        #                  len(spawnpoints))
+        #         log.info('Inactive Spawn Points found in hex: %d or %.1f%%',
+        #                  len(spawnpoints) - self.active_sp,
+        #                  (len(spawnpoints) -
+        #                   self.active_sp) * 100.0 / len_spawnpoints)
+        #         log.info('Active Spawn Points found in hex: %d or %.1f%%',
+        #                  self.active_sp,
+        #                  self.active_sp * 100.0 / len_spawnpoints)
 
-                self.active_sp += self.active_sp == 0
+        #         self.active_sp += self.active_sp == 0
 
-                for k in sorted(kinds.keys()):
-                    log.info('%s kind spawns: %d or %.1f%%', k,
-                             kinds[k], kinds[k] * 100.0 / self.active_sp)
+        #         for k in sorted(kinds.keys()):
+        #             log.info('%s kind spawns: %d or %.1f%%', k,
+        #                      kinds[k], kinds[k] * 100.0 / self.active_sp)
 
-                log.info('Spawns with found TTH: %d or %.1f%% [%d missing]',
-                         self.tth_found,
-                         self.tth_found * 100.0 / self.active_sp,
-                         self.active_sp - self.tth_found)
+        #         log.info('Spawns with found TTH: %d or %.1f%% [%d missing]',
+        #                  self.tth_found,
+        #                  self.tth_found * 100.0 / self.active_sp,
+        #                  self.active_sp - self.tth_found)
 
-                for k in sorted(tth_ranges.keys(), key=int):
-                    log.info('Spawnpoints with a %sm range to find TTH: %d', k,
-                             tth_ranges[k])
+        #         for k in sorted(tth_ranges.keys(), key=int):
+        #             log.info('Spawnpoints with a %sm range to find TTH: %d', k,
+        #                      tth_ranges[k])
 
-                log.info('Over last %d minutes: %d new bands, %d Pokemon ' +
-                         'found', self.minutes, bands_timed, spawns_all)
-                log.info('Of the %d total spawns, %d were targeted, and %d ' +
-                         'found scanning for others', spawns_all, spawns_timed,
-                         spawns_all - spawns_timed)
+        #         log.info('Over last %d minutes: %d new bands, %d Pokemon ' +
+        #                  'found', self.minutes, bands_timed, spawns_all)
+        #         log.info('Of the %d total spawns, %d were targeted, and %d ' +
+        #                  'found scanning for others', spawns_all, spawns_timed,
+        #                  spawns_all - spawns_timed)
 
-                scan_total = spawns_timed + bands_timed
-                spm = scan_total / self.minutes
-                seconds_per_scan = self.minutes * 60 * \
-                    self.args.workers / scan_total if scan_total else 0
+        #         scan_total = spawns_timed + bands_timed
+        #         spm = scan_total / self.minutes
+        #         seconds_per_scan = self.minutes * 60 * \
+        #             self.args.workers / scan_total if scan_total else 0
 
-                log.info('%d scans over %d minutes, %d scans per minute, %d ' +
-                         'secs per scan per worker', scan_total, self.minutes,
-                         spm, seconds_per_scan)
+        #         log.info('%d scans over %d minutes, %d scans per minute, %d ' +
+        #                  'secs per scan per worker', scan_total, self.minutes,
+        #                  spm, seconds_per_scan)
 
-                sum = spawns_all + spawns_missed
-                if sum:
-                    spawns_reached = spawns_all * 100.0 / \
-                        (spawns_all + spawns_missed)
-                    log.info('%d Pokemon found, and %d were not reached in ' +
-                             'time for %.1f%% found', spawns_all,
-                             spawns_missed, spawns_reached)
+        #         sum = spawns_all + spawns_missed
+        #         if sum:
+        #             spawns_reached = spawns_all * 100.0 / \
+        #                 (spawns_all + spawns_missed)
+        #             log.info('%d Pokemon found, and %d were not reached in ' +
+        #                      'time for %.1f%% found', spawns_all,
+        #                      spawns_missed, spawns_reached)
 
-                if spawns_timed:
-                    average = reduce(
-                        lambda x, y: x + y['done'],
-                        spawns_timed_list,
-                        0) / spawns_timed
-                    log.info('%d Pokemon found, %d were targeted, with an ' +
-                             'average delay of %d sec', spawns_all,
-                             spawns_timed, average)
+        #         if spawns_timed:
+        #             average = reduce(
+        #                 lambda x, y: x + y['done'],
+        #                 spawns_timed_list,
+        #                 0) / spawns_timed
+        #             log.info('%d Pokemon found, %d were targeted, with an ' +
+        #                      'average delay of %d sec', spawns_all,
+        #                      spawns_timed, average)
 
-                    spawns_missed = reduce(
-                        lambda x, y: x + len(y),
-                        self.spawns_missed_delay.values(), 0)
-                    sum = spawns_missed + self.spawns_found
-                    found_percent = (
-                        self.spawns_found * 100.0 / sum if sum else 0)
+        #             spawns_missed = reduce(
+        #                 lambda x, y: x + len(y),
+        #                 self.spawns_missed_delay.values(), 0)
+        #             sum = spawns_missed + self.spawns_found
+        #             found_percent = (
+        #                 self.spawns_found * 100.0 / sum if sum else 0)
 
-                    log.info('%d spawns scanned and %d spawns were not ' +
-                             'there when expected for %.1f%%',
-                             self.spawns_found, spawns_missed, found_percent)
+        #             log.info('%d spawns scanned and %d spawns were not ' +
+        #                      'there when expected for %.1f%%',
+        #                      self.spawns_found, spawns_missed, found_percent)
 
-                    self.spawn_percent.append(round(found_percent, 1))
+        #             self.spawn_percent.append(round(found_percent, 1))
 
-                    if self.spawns_missed_delay:
-                        log.warning('Missed spawn IDs with times after spawn:')
-                        log.warning(self.spawns_missed_delay)
+        #             if self.spawns_missed_delay:
+        #                 log.warning('Missed spawn IDs with times after spawn:')
+        #                 log.warning(self.spawns_missed_delay)
 
-                    log.info('History: %s', str(
-                        self.spawn_percent).strip('[]'))
+        #             log.info('History: %s', str(
+        #                 self.spawn_percent).strip('[]'))
 
-                sum = self.scans_done + len(self.scans_missed_list)
-                good_percent = self.scans_done * 100.0 / sum if sum else 0
+        #         sum = self.scans_done + len(self.scans_missed_list)
+        #         good_percent = self.scans_done * 100.0 / sum if sum else 0
 
-                log.info(
-                    '%d scans successful and %d scans missed for %.1f%% found',
-                    self.scans_done, len(self.scans_missed_list), good_percent)
+        #         log.info(
+        #             '%d scans successful and %d scans missed for %.1f%% found',
+        #             self.scans_done, len(self.scans_missed_list), good_percent)
 
-                self.scan_percent.append(round(good_percent, 1))
+        #         self.scan_percent.append(round(good_percent, 1))
 
-                if self.scans_missed_list:
-                    log.warning('Missed scans: %s', Counter(
-                        self.scans_missed_list).most_common(3))
-                    log.info('History: %s', str(self.scan_percent).strip('[]'))
+        #         if self.scans_missed_list:
+        #             log.warning('Missed scans: %s', Counter(
+        #                 self.scans_missed_list).most_common(3))
+        #             log.info('History: %s', str(self.scan_percent).strip('[]'))
 
-                self.status_message = ('Initial scan: {:.2f}%, TTH found: ' +
-                                       '{:.2f}% [{} missing], ').format(
-                    band_percent, self.tth_found * 100.0 / self.active_sp,
-                    self.active_sp - self.tth_found)
-                self.status_message += ('Spawns reached: {:.2f}%, Spawns ' +
-                                        'found: {:.2f}%, Good scans ' +
-                                        '{:.2f}%').format(spawns_reached,
-                                                          found_percent,
-                                                          good_percent)
-                self._stat_init()
+        #         self.status_message = ('Initial scan: {:.2f}%, TTH found: ' +
+        #                                '{:.2f}% [{} missing], ').format(
+        #             band_percent, self.tth_found * 100.0 / self.active_sp,
+        #             self.active_sp - self.tth_found)
+        #         self.status_message += ('Spawns reached: {:.2f}%, Spawns ' +
+        #                                 'found: {:.2f}%, Good scans ' +
+        #                                 '{:.2f}%').format(spawns_reached,
+        #                                                   found_percent,
+        #                                                   good_percent)
+        #         self._stat_init()
 
-            except Exception as e:
-                log.error(
-                    'Performance statistics had an exception: %s.', e)
-                traceback.print_exc(file=sys.stdout)
+        #     except Exception as e:
+        #         log.error(
+        #             'Performance statistics had an exception: %s.', e)
+        #         traceback.print_exc(file=sys.stdout)
 
     # Find the best item to scan next
     def next_item(self, status):

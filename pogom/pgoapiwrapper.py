@@ -3,8 +3,6 @@
 
 import logging
 
-from .pgorequestwrapper import PGoRequestWrapper
-
 log = logging.getLogger(__name__)
 
 
@@ -28,5 +26,4 @@ class PGoApiWrapper:
             return orig_attr
 
     def create_request(self, *args, **kwargs):
-        request = self.api.create_request(*args, **kwargs)
-        return PGoRequestWrapper(request)
+        return self.api.create_request(*args, **kwargs)

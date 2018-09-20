@@ -106,6 +106,7 @@ class Pogom(Flask):
         pokestops = request.args.get('pokestops')
         pokemon = request.args.get('pokemon')
         gyms = request.args.get('gyms')
+        print(pokemon)
         return True
 
     def render_inject_js(self):

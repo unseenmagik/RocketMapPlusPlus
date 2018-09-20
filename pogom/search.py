@@ -40,7 +40,6 @@ from requests.packages.urllib3.util.retry import Retry
 from distutils.version import StrictVersion
 from cachetools import TTLCache
 
-from pgoapi.hash_server import HashServer
 from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
                      WorkerStatus, HashKeys, ScannedLocation)
 from .utils import now, distance
@@ -394,10 +393,10 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
     }
 
     # Create the key scheduler.
-    if args.hash_key:
-        log.info('Enabling hashing key scheduler...')
-        key_scheduler = schedulers.KeyScheduler(args.hash_key,
-                                                db_updates_queue)
+#    if args.hash_key:
+#        log.info('Enabling hashing key scheduler...')
+#        key_scheduler = schedulers.KeyScheduler(args.hash_key,
+#                                                db_updates_queue)
 
     if (args.print_status):
         log.info('Starting status printer thread...')
@@ -410,20 +409,20 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
         t.start()
 
     # Create account recycler thread.
-    log.info('Starting account recycler thread...')
-    t = Thread(target=account_recycler, name='account-recycler',
-               args=(args, account_queue, account_failures))
-    t.daemon = True
-    t.start()
+#    log.info('Starting account recycler thread...')
+#    t = Thread(target=account_recycler, name='account-recycler',
+#               args=(args, account_queue, account_failures))
+#    t.daemon = True
+#    t.start()
 
     # Create captcha overseer thread.
-    if args.captcha_solving:
-        log.info('Starting captcha overseer thread...')
-        t = Thread(target=captcha_overseer_thread, name='captcha-overseer',
-                   args=(args, account_queue, account_captchas, key_scheduler,
-                         wh_queue))
-        t.daemon = True
-        t.start()
+#    if args.captcha_solving:
+#        log.info('Starting captcha overseer thread...')
+#        t = Thread(target=captcha_overseer_thread, name='captcha-overseer',
+#                   args=(args, account_queue, account_captchas, key_scheduler,
+#                         wh_queue))
+#        t.daemon = True
+#        t.start()
 
     if args.status_name is not None:
         log.info('Starting status database thread...')
@@ -436,46 +435,46 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
     # Create specified number of search_worker_thread.
     log.info('Starting search worker threads...')
     log.info('Configured scheduler is %s.', args.scheduler)
-    for i in range(0, args.workers):
-        log.debug('Starting search worker thread %d...', i)
+    # for i in range(0, args.workers):
+    #     log.debug('Starting search worker thread %d...', i)
 
-        if i == 0 or (args.beehive and i % args.workers_per_hive == 0):
-            search_items_queue = Queue()
-            # Create the appropriate type of scheduler to handle the search
-            # queue.
-            scheduler = schedulers.SchedulerFactory.get_scheduler(
-                args.scheduler, [search_items_queue], threadStatus, args)
+    #     if i == 0 or (args.beehive and i % args.workers_per_hive == 0):
+    #         search_items_queue = Queue()
+    #         # Create the appropriate type of scheduler to handle the search
+    #         # queue.
+    #         scheduler = schedulers.SchedulerFactory.get_scheduler(
+    #             args.scheduler, [search_items_queue], threadStatus, args)
 
-            scheduler_array.append(scheduler)
-            search_items_queue_array.append(search_items_queue)
+    #         scheduler_array.append(scheduler)
+    #         search_items_queue_array.append(search_items_queue)
 
-        # Set proxy for each worker, using round robin.
-        proxy_display = 'No'
-        proxy_url = False    # Will be assigned inside a search thread.
+    #     # Set proxy for each worker, using round robin.
+    #     proxy_display = 'No'
+    #     proxy_url = False    # Will be assigned inside a search thread.
 
-        workerId = 'Worker {:03}'.format(i)
-        threadStatus[workerId] = {
-            'type': 'Worker',
-            'message': 'Creating thread...',
-            'success': 0,
-            'fail': 0,
-            'noitems': 0,
-            'skip': 0,
-            'captcha': 0,
-            'username': '',
-            'proxy_display': proxy_display,
-            'proxy_url': proxy_url,
-        }
-        argset = (
-            args, account_queue, account_sets, account_failures,
-            account_captchas, control_flags, threadStatus[workerId],
-            db_updates_queue, wh_queue, scheduler, key_scheduler, gym_cache)
+    #     workerId = 'Worker {:03}'.format(i)
+    #     threadStatus[workerId] = {
+    #         'type': 'Worker',
+    #         'message': 'Creating thread...',
+    #         'success': 0,
+    #         'fail': 0,
+    #         'noitems': 0,
+    #         'skip': 0,
+    #         'captcha': 0,
+    #         'username': '',
+    #         'proxy_display': proxy_display,
+    #         'proxy_url': proxy_url,
+    #     }
+    #     argset = (
+    #         args, account_queue, account_sets, account_failures,
+    #         account_captchas, control_flags, threadStatus[workerId],
+    #         db_updates_queue, wh_queue, scheduler, key_scheduler, gym_cache)
 
-        t = Thread(target=search_worker_thread,
-                   name='search-worker-{}'.format(i),
-                   args=argset)
-        t.daemon = True
-        t.start()
+    #     t = Thread(target=search_worker_thread,
+    #                name='search-worker-{}'.format(i),
+    #                args=argset)
+    #     t.daemon = True
+    #     t.start()
 
     if not args.no_version_check:
         log.info('Enabling new API force Watchdog.')
@@ -491,11 +490,11 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
 
     # The real work starts here but will halt when any control flag is set.
     while True:
-        if (args.hash_key is not None and
-            (hashkeys_last_upsert + hashkeys_upsert_min_delay) <=
-                timeit.default_timer()):
-            upsertKeys(args.hash_key, key_scheduler, db_updates_queue)
-            hashkeys_last_upsert = timeit.default_timer()
+        # if (args.hash_key is not None and
+        #     (hashkeys_last_upsert + hashkeys_upsert_min_delay) <=
+        #         timeit.default_timer()):
+        #     upsertKeys(args.hash_key, key_scheduler, db_updates_queue)
+        #     hashkeys_last_upsert = timeit.default_timer()
 
         odt_triggered = (args.on_demand_timeout > 0 and
                          (now() - args.on_demand_timeout) > heartb[0])
@@ -508,9 +507,9 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
             for i in range(0, len(scheduler_array)):
                 scheduler_array[i].scanning_paused()
             # API Watchdog - Continue to check API version.
-            if not args.no_version_check and not odt_triggered:
-                api_check_time = check_forced_version(
-                    args, api_check_time, control_flags['api_watchdog'])
+            # if not args.no_version_check and not odt_triggered:
+            #     api_check_time = check_forced_version(
+            #         args, api_check_time, control_flags['api_watchdog'])
             time.sleep(1)
 
         # If a new location has been passed to us, get the most recent one.
@@ -1179,35 +1178,35 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
                 # Update hashing key stats in the database based on the values
                 # reported back by the hashing server.
-                if args.hash_key:
-                    key = HashServer.status.get('token', None)
-                    key_instance = key_scheduler.keys[key]
-                    key_instance['remaining'] = HashServer.status.get(
-                        'remaining', 0)
+                # if args.hash_key:
+                #     key = HashServer.status.get('token', None)
+                #     key_instance = key_scheduler.keys[key]
+                #     key_instance['remaining'] = HashServer.status.get(
+                #         'remaining', 0)
 
-                    key_instance['maximum'] = (
-                        HashServer.status.get('maximum', 0))
+                #     key_instance['maximum'] = (
+                #         HashServer.status.get('maximum', 0))
 
-                    usage = (
-                        key_instance['maximum'] -
-                        key_instance['remaining'])
+                #     usage = (
+                #         key_instance['maximum'] -
+                #         key_instance['remaining'])
 
-                    if key_instance['peak'] < usage:
-                        key_instance['peak'] = usage
+                #     if key_instance['peak'] < usage:
+                #         key_instance['peak'] = usage
 
-                    if key_instance['expires'] is None:
-                        expires = HashServer.status.get(
-                            'expiration', None)
+                #     if key_instance['expires'] is None:
+                #         expires = HashServer.status.get(
+                #             'expiration', None)
 
-                        if expires is not None:
-                            expires = datetime.utcfromtimestamp(expires)
-                            key_instance['expires'] = expires
+                #         if expires is not None:
+                #             expires = datetime.utcfromtimestamp(expires)
+                #             key_instance['expires'] = expires
 
-                    key_instance['last_updated'] = datetime.utcnow()
+                #     key_instance['last_updated'] = datetime.utcnow()
 
-                    log.debug('Hash key %s has %s/%s RPM left.', key,
-                              key_instance['remaining'],
-                              key_instance['maximum'])
+                #     log.debug('Hash key %s has %s/%s RPM left.', key,
+                #               key_instance['remaining'],
+                #               key_instance['maximum'])
 
                 # Delay the desired amount after "scan" completion.
                 delay = scheduler.delay(status['last_scan_date'])
@@ -1239,18 +1238,18 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 def upsertKeys(keys, key_scheduler, db_updates_queue):
     # Prepare hashing keys to be sent to the database.
     # Keep highest peak value stored.
-    hashkeys = {}
-    stored_peaks = HashKeys.get_stored_peaks()
-    for key, instance in key_scheduler.keys.iteritems():
-        hashkeys[key] = instance
-        hashkeys[key]['key'] = key
+    # hashkeys = {}
+    # stored_peaks = HashKeys.get_stored_peaks()
+    # for key, instance in key_scheduler.keys.iteritems():
+    #     hashkeys[key] = instance
+    #     hashkeys[key]['key'] = key
 
-        if key in stored_peaks:
-            max_peak = max(instance['peak'], stored_peaks[key])
-            hashkeys[key]['peak'] = max_peak
+    #     if key in stored_peaks:
+    #         max_peak = max(instance['peak'], stored_peaks[key])
+    #         hashkeys[key]['peak'] = max_peak
 
-    db_updates_queue.put((HashKeys, hashkeys))
-
+    # db_updates_queue.put((HashKeys, hashkeys))
+    pass
 
 # Delay each thread start time so that logins occur after delay.
 def stagger_thread(args):
@@ -1267,50 +1266,51 @@ def stat_delta(current_status, last_status, stat_name):
 
 
 def check_forced_version(args, api_check_time, api_watchdog_flag):
-    if int(time.time()) > api_check_time:
-        log.debug("Checking forced API version.")
-        api_check_time = int(time.time()) + args.version_check_interval
-        forced_api = get_api_version(args)
+    # if int(time.time()) > api_check_time:
+    #     log.debug("Checking forced API version.")
+    #     api_check_time = int(time.time()) + args.version_check_interval
+    #     forced_api = get_api_version(args)
 
-        if not forced_api:
-            # Couldn't retrieve API version. Pause scanning.
-            api_watchdog_flag.set()
-            log.warning('Forced API check got no or invalid response. ' +
-                        'Possible bad proxy.')
-            log.warning('Scanner paused due to failed API check.')
-            return api_check_time
+    #     if not forced_api:
+    #         # Couldn't retrieve API version. Pause scanning.
+    #         api_watchdog_flag.set()
+    #         log.warning('Forced API check got no or invalid response. ' +
+    #                     'Possible bad proxy.')
+    #         log.warning('Scanner paused due to failed API check.')
+    #         return api_check_time
 
-        # Got a response let's compare version numbers.
-        try:
-            if StrictVersion(args.api_version) < StrictVersion(forced_api):
-                # Installed API version is lower. Pause scanning.
-                api_watchdog_flag.set()
-                log.warning('Started with API: %s, ' +
-                            'Niantic forced to API: %s',
-                            args.api_version,
-                            forced_api)
-                log.warning('Scanner paused due to forced Niantic API update.')
-            else:
-                # API check was successful and
-                # installed API version is newer or equal forced API.
-                # Continue scanning.
-                log.debug("API check was successful. Continue scanning.")
-                api_watchdog_flag.clear()
+    #     # Got a response let's compare version numbers.
+    #     try:
+    #         if StrictVersion(args.api_version) < StrictVersion(forced_api):
+    #             # Installed API version is lower. Pause scanning.
+    #             api_watchdog_flag.set()
+    #             log.warning('Started with API: %s, ' +
+    #                         'Niantic forced to API: %s',
+    #                         args.api_version,
+    #                         forced_api)
+    #             log.warning('Scanner paused due to forced Niantic API update.')
+    #         else:
+    #             # API check was successful and
+    #             # installed API version is newer or equal forced API.
+    #             # Continue scanning.
+    #             log.debug("API check was successful. Continue scanning.")
+    #             api_watchdog_flag.clear()
 
-        except ValueError:
-            # Unknown version format. Pause scanning as well.
-            api_watchdog_flag.set()
-            log.warning('Niantic forced unknown API version format: %s.',
-                        forced_api)
-            log.warning('Scanner paused due to unknown API version format.')
-        except Exception as e:
-            # Something else happened. Pause scanning as well.
-            api_watchdog_flag.set()
-            log.warning('Unknown error on API version comparison: %s.',
-                        repr(e))
-            log.warning('Scanner paused due to unknown API check error.')
+    #     except ValueError:
+    #         # Unknown version format. Pause scanning as well.
+    #         api_watchdog_flag.set()
+    #         log.warning('Niantic forced unknown API version format: %s.',
+    #                     forced_api)
+    #         log.warning('Scanner paused due to unknown API version format.')
+    #     except Exception as e:
+    #         # Something else happened. Pause scanning as well.
+    #         api_watchdog_flag.set()
+    #         log.warning('Unknown error on API version comparison: %s.',
+    #                     repr(e))
+    #         log.warning('Scanner paused due to unknown API check error.')
 
-    return api_check_time
+    # return api_check_time
+    return False
 
 
 def get_api_version(args):
@@ -1322,32 +1322,33 @@ def get_api_version(args):
     Returns:
         API version string. False if request failed.
     """
-    proxies = {}
+    # proxies = {}
 
-    if args.proxy:
-        num, proxy = get_new_proxy(args)
-        proxies = {
-            'http': proxy,
-            'https': proxy
-        }
+    # if args.proxy:
+    #     num, proxy = get_new_proxy(args)
+    #     proxies = {
+    #         'http': proxy,
+    #         'https': proxy
+    #     }
 
-    try:
-        s = requests.Session()
-        s.mount('https://',
-                HTTPAdapter(max_retries=Retry(total=3,
-                                              backoff_factor=0.5,
-                                              status_forcelist=[500, 502,
-                                                                503, 504])))
-        r = s.get(
-            'https://pgorelease.nianticlabs.com/plfe/version',
-            proxies=proxies,
-            verify=False,
-            timeout=5)
+    # try:
+    #     s = requests.Session()
+    #     s.mount('https://',
+    #             HTTPAdapter(max_retries=Retry(total=3,
+    #                                           backoff_factor=0.5,
+    #                                           status_forcelist=[500, 502,
+    #                                                             503, 504])))
+    #     r = s.get(
+    #         'https://pgorelease.nianticlabs.com/plfe/version',
+    #         proxies=proxies,
+    #         verify=False,
+    #         timeout=5)
 
-        return r.text[2:] if r.status_code == requests.codes.ok else False
-    except Exception as e:
-        log.warning('error on API check: %s', repr(e))
-        return False
+    #     return r.text[2:] if r.status_code == requests.codes.ok else False
+    # except Exception as e:
+    #     log.warning('error on API check: %s', repr(e))
+    #     return False
+    return True
 
 
 def is_paused(control_flags):

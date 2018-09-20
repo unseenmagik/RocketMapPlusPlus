@@ -3,9 +3,6 @@
 
 import logging
 
-from pgoapi.utilities import get_cell_ids
-from pgoapi.hash_server import BadHashRequestException, HashingOfflineException
-
 log = logging.getLogger(__name__)
 
 
@@ -14,51 +11,7 @@ class AccountBannedException(Exception):
 
 
 def send_generic_request(req, account, settings=True, buddy=True, inbox=True):
-    req.check_challenge()
-    req.get_hatched_eggs()
-    req.get_holo_inventory(last_timestamp_ms=account['last_timestamp_ms'])
-    req.check_awarded_badges()
-
-    if settings:
-        if 'remote_config' in account:
-            req.download_settings(hash=account['remote_config']['hash'])
-        else:
-            req.download_settings()
-
-    if buddy:
-        req.get_buddy_walked()
-
-    if inbox:
-        req.get_inbox(is_history=True)
-
-    try:
-        resp = req.call(False)
-    except HashingOfflineException:
-        log.error('Hashing server is unreachable, it might be offline.')
-        raise
-    except BadHashRequestException:
-        log.error('Invalid or expired hashing key: %s.',
-                  req.__parent__.get_hash_server_token())
-        raise
-
-    parse_inventory(account, resp)
-    if settings:
-        parse_remote_config(account, resp)
-
-    # Clean all unneeded data.
-    del resp['envelope'].platform_returns[:]
-    if 'responses' not in resp:
-        return resp
-    responses = [
-        'GET_HATCHED_EGGS', 'GET_HOLO_INVENTORY', 'CHECK_AWARDED_BADGES',
-        'DOWNLOAD_SETTINGS', 'GET_BUDDY_WALKED', 'GET_INBOX'
-    ]
-    for item in responses:
-        if item in resp['responses']:
-            del resp['responses'][item]
-
-    log.log(5, 'Response: \n%s', resp)
-    return resp
+    return False
 
 
 def parse_remote_config(account, api_response):
@@ -173,86 +126,44 @@ def catchRequestException(task):
 
 @catchRequestException('spinning Pokestop')
 def fort_search(api, account, fort, step_location):
-    req = api.create_request()
-    req.fort_search(
-        fort_id=fort.id,
-        fort_latitude=fort.latitude,
-        fort_longitude=fort.longitude,
-        player_latitude=step_location[0],
-        player_longitude=step_location[1])
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('getting Pokestop details')
 def fort_details(api, account, fort):
-    req = api.create_request()
-    req.fort_details(
-        fort_id=fort.id, latitude=fort.latitude, longitude=fort.longitude)
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('encountering Pokémon')
 def encounter(api, account, encounter_id, spawnpoint_id, scan_location):
-    req = api.create_request()
-    req.encounter(
-        encounter_id=encounter_id,
-        spawn_point_id=spawnpoint_id,
-        player_latitude=scan_location[0],
-        player_longitude=scan_location[1])
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('clearing Inventory')
 def recycle_inventory_item(api, account, item_id, drop_count):
-    req = api.create_request()
-    req.recycle_inventory_item(item_id=item_id, count=drop_count)
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('putting an egg in incubator')
 def use_item_egg_incubator(api, account, incubator_id, egg_id):
-    req = api.create_request()
-    req.use_item_egg_incubator(item_id=incubator_id, pokemon_id=egg_id)
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('releasing Pokemon')
 def release_pokemon(api, account, pokemon_id, release_ids=None):
-    if release_ids is None:
-        return False
-
-    req = api.create_request()
-    req.release_pokemon(pokemon_id=pokemon_id, pokemon_ids=release_ids)
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('getting Rewards')
 def level_up_rewards(api, account):
-    req = api.create_request()
-    req.level_up_rewards(level=account['level'])
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('downloading map')
 def get_map_objects(api, account, location):
-    cell_ids = get_cell_ids(location[0], location[1])
-    timestamps = [0, ]*len(cell_ids)
-    req = api.create_request()
-    req.get_map_objects(
-        latitude=location[0],
-        longitude=location[1],
-        since_timestamp_ms=timestamps,
-        cell_id=cell_ids)
-    return send_generic_request(req, account)
+    return False
 
 
 @catchRequestException('getting gym details')
 def gym_get_info(api, account, position, gym):
-    req = api.create_request()
-    req.gym_get_info(
-        gym_id=gym['gym_id'],
-        player_lat_degrees=position[0],
-        player_lng_degrees=position[1],
-        gym_lat_degrees=gym['latitude'],
-        gym_lng_degrees=gym['longitude'])
-    return send_generic_request(req, account)
+    return False
