@@ -356,11 +356,11 @@ class Pogom(Flask):
                         'gym_id': f.gym_id,
                         'level': 0,
                         'spawn': datetime.utcfromtimestamp(
-                            f.lastModifiedTimestampMs / 1000.0)
+                            f.lastModifiedTimestampMs / 1000.0),
                         'start': datetime.utcfromtimestamp(
-                            f.lastModifiedTimestampMs / 1000.0)
+                            f.lastModifiedTimestampMs / 1000.0),
                         'end': datetime.utcfromtimestamp(
-                            f.raidEndMs / 1000.0)
+                            f.raidEndMs / 1000.0),
                         'pokemon_id': f.raidPokemon,
                         'cp': None,
                         'move_1': None,
