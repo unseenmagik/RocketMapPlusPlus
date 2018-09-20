@@ -87,6 +87,7 @@ class Pogom(Flask):
         self.route("/submit_token", methods=['POST'])(self.submit_token)
         self.route("/get_stats", methods=['GET'])(self.get_account_stats)
         self.route("/robots.txt", methods=['GET'])(self.render_robots_txt)
+        self.route("/webhook", methods=['GET'])(self.webhook)
         self.route("/serviceWorker.min.js", methods=['GET'])(
             self.render_service_worker_js)
 
@@ -100,6 +101,12 @@ class Pogom(Flask):
         args = get_args()
         return render_template('bookmarklet.html',
                                domain=args.manual_captcha_domain)
+
+    def webhook(self):
+        pokestops = request.args.get('pokestops')
+        pokemon = request.args.get('pokemon')
+        gyms = request.args.get('gyms')
+        return True
 
     def render_inject_js(self):
         args = get_args()

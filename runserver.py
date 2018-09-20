@@ -63,17 +63,6 @@ log.addHandler(stdout_hdlr)
 log.addHandler(stderr_hdlr)
 
 
-# Assert pgoapi is installed.
-try:
-    import pgoapi
-    from pgoapi import PGoApi, utilities as util
-except ImportError:
-    log.critical(
-        "It seems `pgoapi` is not installed. Try running " +
-        "pip install --upgrade -r requirements.txt.")
-    sys.exit(1)
-
-
 # Patch to make exceptions in threads cause an exception.
 def install_thread_excepthook():
     """
@@ -165,47 +154,6 @@ def validate_assets(args):
 
 
 def can_start_scanning(args):
-    # Currently supported pgoapi.
-    pgoapi_version = "1.2.0"
-    api_version_error = (
-        'The installed pgoapi is out of date. Please refer to ' +
-        'http://rocketmap.readthedocs.io/en/develop/common-issues/' +
-        'faq.html#i-get-an-error-about-pgoapi-version'
-    )
-
-    # Assert pgoapi >= pgoapi_version.
-    if (not hasattr(pgoapi, "__version__") or
-            StrictVersion(pgoapi.__version__) < StrictVersion(pgoapi_version)):
-        log.critical(api_version_error)
-        return False
-
-    # Abort if we don't have a hash key set.
-    if not args.hash_key:
-        log.critical('Hash key is required for scanning. Exiting.')
-        return False
-
-    # Check the PoGo api pgoapi implements against what RM is expecting.
-    # Some API versions have a non-standard version int, so we map them
-    # to the correct one.
-    api_version_int = int(args.api_version.replace('.', '0'))
-    api_version_map = {
-        8302: 8300,
-        8501: 8500,
-        8705: 8700,
-        8901: 8900,
-        9101: 9100,
-        9102: 9100
-    }
-    mapped_version_int = api_version_map.get(api_version_int, api_version_int)
-
-    try:
-        if PGoApi.get_api_version() != mapped_version_int:
-            log.critical(api_version_error)
-            return False
-    except AttributeError:
-        log.critical(api_version_error)
-        return False
-
     return True
 
 
@@ -466,27 +414,11 @@ def main():
                   heartbeat, db_updates_queue, wh_updates_queue)
 
         log.debug('Starting a %s search thread', args.scheduler)
-        search_thread = Thread(target=search_overseer_thread,
-                               name='search-overseer', args=argset)
-        search_thread.daemon = True
-        search_thread.start()
 
     if args.no_server:
         # This loop allows for ctrl-c interupts to work since flask won't be
         # holding the program open.
-        while search_thread.is_alive():
-            time.sleep(60)
     else:
-        # Dynamic rarity.
-        if args.rarity_update_frequency:
-            t = Thread(target=dynamic_rarity_refresher,
-                       name='dynamic-rarity')
-            t.daemon = True
-            t.start()
-            log.info('Dynamic rarity is enabled.')
-        else:
-            log.info('Dynamic rarity is disabled.')
-
         if args.cors:
             CORS(app)
 
