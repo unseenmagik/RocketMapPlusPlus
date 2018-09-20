@@ -109,6 +109,8 @@ class Pogom(Flask):
 
         print(pokemon)
 
+        return 'ok'
+
     def render_inject_js(self):
         args = get_args()
         src = render_template('inject.js',
