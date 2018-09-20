@@ -9,7 +9,7 @@ from datetime import datetime
 from s2sphere import LatLng
 from bisect import bisect_left
 from flask import Flask, abort, jsonify, render_template, request,\
-    make_response, send_from_directory
+    make_response, send_from_directory, json
 from flask.json import JSONEncoder
 from flask_compress import Compress
 
@@ -108,7 +108,7 @@ class Pogom(Flask):
         gyms = request.args.get('gyms')
 
         #print("request: " + request)
-        print("request.args: " + request.args)
+        print("request.args: " + json.dumps(request.args.to_dict()))
         print("pokemon: " + pokemon)
 
         return 'ok'
