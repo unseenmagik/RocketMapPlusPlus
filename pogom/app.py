@@ -108,12 +108,7 @@ class Pogom(Flask):
         pokemon = request_json.get('pokemon')
         gyms = request_json.get('gyms')
 
-        #print("request: " + request)
-        print("request.get_json(): " + json.dumps(request_json))
-        if pokemon:
-            print("pokemon: " + pokemon)
-
-        return 'ok'
+        return self.parse_map(pokemon, pokestops, gyms)
 
     def parse_map(self, pokemon_dict, pokestops_dict, gyms_dict):
         pokemon = {}
