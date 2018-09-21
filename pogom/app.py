@@ -171,7 +171,7 @@ class Pogom(Flask):
                     skipped += 1
                     continue
 
-                disappear_time = p['despawn_time']
+                disappear_time = datetime.utcfromtimestamp(p['despawn_time'] / 1000.0)
 
                 pokemon_id = p['type']
 
@@ -211,7 +211,7 @@ class Pogom(Flask):
                         Pokestop.pokestop_id, Pokestop.last_modified).where(
                             (Pokestop.pokestop_id << stop_ids)).dicts())
                     encountered_pokestops = [(f['pokestop_id'], int(
-                        (f['last_modified'] - datetime(1970, 1,
+                        (datetime.utcfromtimestamp(f['last_modified'] / 1000.0) - datetime(1970, 1,
                                                        1)).total_seconds()))
                                              for f in query]
 
