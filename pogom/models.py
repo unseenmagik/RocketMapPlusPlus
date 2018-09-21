@@ -33,6 +33,7 @@ from .customLog import printPokemon
 from .account import check_login, setup_api, pokestop_spinnable, spin_pokestop
 from .proxy import get_new_proxy
 from .apiRequests import encounter
+from ..runserver import db_update_queue
 
 log = logging.getLogger(__name__)
 

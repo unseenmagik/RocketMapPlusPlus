@@ -62,6 +62,8 @@ log = logging.getLogger()
 log.addHandler(stdout_hdlr)
 log.addHandler(stderr_hdlr)
 
+db_updates_queue = Queue()
+
 
 # Patch to make exceptions in threads cause an exception.
 def install_thread_excepthook():
@@ -175,6 +177,10 @@ def startup_db(app, clear_db):
             'Drop and recreate is complete. Now remove -cd and restart.')
         sys.exit()
     return db
+
+def get_db_updates_queue():
+    global db_updates_queue
+    return db_updates_queue
 
 
 def extract_coordinates(location):
@@ -310,7 +316,7 @@ def main():
     new_location_queue.put(position)
 
     # DB Updates
-    db_updates_queue = Queue()
+    global db_updates_queue
 
     # Thread(s) to process database updates.
     for i in range(args.db_threads):
