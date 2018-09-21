@@ -263,7 +263,7 @@ class Pogom(Flask):
                     'latitude':
                         f['latitude'],
                     'longitude':
-                        f.longitude,
+                        f['longitude'],
                     'last_modified':
                         datetime.utcfromtimestamp(
                             f['lastModifiedTimestampMs'] / 1000.0),
