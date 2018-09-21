@@ -50,8 +50,9 @@ def convert_pokemon_list(pokemon):
 class Pogom(Flask):
 
     def __init__(self, import_name, **kwargs):
-        super(Pogom, self).__init__(import_name, **kwargs)
         self.db_update_queue = kwargs.get('db_update_queue')
+        kwargs.pop('db_update_queue')
+        super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
         args = get_args()
