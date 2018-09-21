@@ -21,6 +21,7 @@ from .utils import (get_args, get_pokemon_name, get_pokemon_types,
 from .transform import transform_from_wgs_to_gcj
 from .blacklist import fingerprints, get_ip_blacklist
 from .customLog import printPokemon
+from runserver import db_update_queue
 
 log = logging.getLogger(__name__)
 compress = Compress()
