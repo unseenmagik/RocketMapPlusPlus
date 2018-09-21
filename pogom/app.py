@@ -301,13 +301,13 @@ class Pogom(Flask):
         log.debug('Skipped Pokemon: %d, pokestops: %d.', skipped, stopsskipped)
 
         if pokemon:
-            db_update_queue.put((Pokemon, pokemon))
+            self.db_update_queue.put((Pokemon, pokemon))
         if pokestops:
-            db_update_queue.put((Pokestop, pokestops))
+            self.db_update_queue.put((Pokestop, pokestops))
         if gyms:
-            db_update_queue.put((Gym, gyms))
+            self.db_update_queue.put((Gym, gyms))
         if raids:
-            db_update_queue.put((Raid, raids))
+            self.db_update_queue.put((Raid, raids))
 
         return 'ok'
 
