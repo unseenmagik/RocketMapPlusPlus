@@ -199,7 +199,7 @@ class Pogom(Flask):
                     'weight': None,
                     'gender': p['gender'],
                     'costume': p['costume'],
-                    'form': p.get('form', ''),
+                    'form': p.get('form', 0),
                     'weather_boosted_condition': None
                 }
 
