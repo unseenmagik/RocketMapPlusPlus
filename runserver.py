@@ -211,6 +211,8 @@ def main():
 
     set_log_and_verbosity(log)
 
+    global db_updates_queue
+
     # Abort if only-server and no-server are used together.
     if args.only_server and args.no_server:
         log.critical(
@@ -279,7 +281,8 @@ def main():
     if not args.no_server and not args.clear_db:
         app = Pogom(__name__,
                     root_path=os.path.dirname(
-                              os.path.abspath(__file__)).decode('utf8'))
+                              os.path.abspath(__file__)).decode('utf8'),
+                    db_update_queue=db_updates_queue)
         app.before_request(app.validate_request)
         app.set_current_location(position)
 
@@ -314,9 +317,6 @@ def main():
     # Setup the location tracking queue and push the first location on.
     new_location_queue = Queue()
     new_location_queue.put(position)
-
-    # DB Updates
-    global db_updates_queue
 
     # Thread(s) to process database updates.
     for i in range(args.db_threads):
