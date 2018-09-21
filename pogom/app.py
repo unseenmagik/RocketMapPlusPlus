@@ -211,8 +211,7 @@ class Pogom(Flask):
                         Pokestop.pokestop_id, Pokestop.last_modified).where(
                             (Pokestop.pokestop_id << stop_ids)).dicts())
                     encountered_pokestops = [(f['pokestop_id'], int(
-                        (datetime.utcfromtimestamp(f['last_modified'] / 1000.0) - datetime(1970, 1,
-                                                       1)).total_seconds()))
+                        (f['last_modified'] - datetime(1970, 1, 1)).total_seconds()))
                                              for f in query]
 
             for f in pokestops_dict:
