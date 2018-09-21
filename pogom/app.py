@@ -214,11 +214,11 @@ class Pogom(Flask):
                                              for f in query]
 
             for f in pokestops_dict:
-                if len(f['active_pokemon_id']) > 0:
+                if f['active_pokemon_id'] > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
                         f['last_modified'] / 1000.0) +
                         timedelta(minutes=args.lure_duration))
-                    active_pokemon_id = f['active_pokemon_id'][0]
+                    active_pokemon_id = f['active_pokemon_id']
                 else:
                     lure_expiration, active_pokemon_id = None, None
 
