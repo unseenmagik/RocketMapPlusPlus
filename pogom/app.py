@@ -20,6 +20,7 @@ from .utils import (get_args, get_pokemon_name, get_pokemon_types,
                     now, dottedQuadToNum, date_secs)
 from .transform import transform_from_wgs_to_gcj
 from .blacklist import fingerprints, get_ip_blacklist
+from .customLog import printPokemon
 
 log = logging.getLogger(__name__)
 compress = Compress()
