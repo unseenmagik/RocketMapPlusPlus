@@ -134,7 +134,7 @@ class Pogom(Flask):
         now_secs = date_secs(now_date)
 
         if pokemon_dict:
-            encounter_ids = [p.id for p in pokemon_dict]
+            encounter_ids = [p['id'] for p in pokemon_dict]
             # For all the wild Pokemon we found check if an active Pokemon is in
             # the database.
             with Pokemon.database().execution_context():
@@ -151,10 +151,10 @@ class Pogom(Flask):
                     (p['encounter_id'], p['spawnpoint_id']) for p in query]
 
             for p in pokemon_dict:
-                spawn_id = p.spawn_id
+                spawn_id = p['spawn_id']
 
                 sighting = {
-                    'encounter_id': p.id,
+                    'encounter_id': p['id'],
                     'spawnpoint_id': spawn_id,
                     'scan_time': now_date,
                     'tth_secs': None
@@ -163,14 +163,14 @@ class Pogom(Flask):
                 # Keep a list of sp_ids to return.
                 sp_id_list.append(spawn_id)
 
-                if ((p.id, spawn_id) in encountered_pokemon):
+                if ((p['id'], spawn_id) in encountered_pokemon):
                     # If Pokemon has been encountered before don't process it.
                     skipped += 1
                     continue
 
-                disappear_time = p.despawn_time
+                disappear_time = p['despawn_time']
 
-                pokemon_id = p.type
+                pokemon_id = p['type']
 
                 # If this is an ignored pokemon, skip this whole section.
                 # We want the stuff above or we will impact spawn detection
@@ -180,18 +180,18 @@ class Pogom(Flask):
                     filtered += 1
                     continue
 
-                printPokemon(pokemon_id, p.lat, p.lon,
+                printPokemon(pokemon_id, p['lat'], p['lon'],
                              disappear_time)
 
                 # Scan for IVs/CP and moves.
                 pokemon_info = False
 
-                pokemon[p.id] = {
-                    'encounter_id': p.id,
+                pokemon[p['id']] = {
+                    'encounter_id': p['id'],
                     'spawnpoint_id': spawn_id,
                     'pokemon_id': pokemon_id,
-                    'latitude': p.lat,
-                    'longitude': p.lon,
+                    'latitude': p['lat'],
+                    'longitude': p['lon'],
                     'disappear_time': disappear_time,
                     'individual_attack': None,
                     'individual_defense': None,
@@ -202,9 +202,9 @@ class Pogom(Flask):
                     'cp_multiplier': None,
                     'height': None,
                     'weight': None,
-                    'gender': p.gender,
-                    'costume': p.costume,
-                    'form': p.form,
+                    'gender': p['gender'],
+                    'costume': p['costume'],
+                    'form': p.get('form', ''),
                     'weather_boosted_condition': None
 
                 }
@@ -213,12 +213,12 @@ class Pogom(Flask):
                     if (pokemon_id in args.webhook_whitelist or
                         (not args.webhook_whitelist and pokemon_id
                          not in args.webhook_blacklist)):
-                        wh_poke = pokemon[p.id].copy()
+                        wh_poke = pokemon[p['id']].copy()
                         wh_poke.update({
                             'disappear_time': calendar.timegm(
                                 disappear_time.timetuple()),
-                            'last_modified_time': p.last_modified_timestamp_ms,
-                            'time_until_hidden_ms': p.time_till_hidden_ms,
+                            'last_modified_time': p['last_modified_timestamp_ms'],
+                            'time_until_hidden_ms': p['time_till_hidden_ms'],
                             'verified': SpawnPoint.tth_found(sp),
                             'seconds_until_despawn': seconds_until_despawn,
                             'spawn_start': start_end[0],
@@ -233,7 +233,7 @@ class Pogom(Flask):
                         wh_update_queue.put(('pokemon', wh_poke))
 
         if pokestops_dict:
-            stop_ids = [f.pokestop_id for f in pokestops_dict]
+            stop_ids = [f['pokestop_id'] for f in pokestops_dict]
             if stop_ids:
                 with Pokemon.database().execution_context():
                     query = (Pokestop.select(
@@ -245,27 +245,27 @@ class Pogom(Flask):
                                              for f in query]
 
             for f in pokestops_dict:
-                if len(f.active_pokemon_id) > 0:
+                if len(f['active_pokemon_id']) > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
-                        f.last_modified / 1000.0) +
+                        f['last_modified'] / 1000.0) +
                         timedelta(minutes=args.lure_duration))
-                    active_pokemon_id = f.active_pokemon_id[0]
+                    active_pokemon_id = f['active_pokemon_id'][0]
                 else:
                     lure_expiration, active_pokemon_id = None, None
 
-                if ((f.pokestop_id, int(f.last_modified / 1000.0))
+                if ((f['pokestop_id'], int(f['last_modified'] / 1000.0))
                         in encountered_pokestops):
                     # If pokestop has been encountered before and hasn't
                     # changed don't process it.
                     stopsskipped += 1
                     continue
-                pokestops[f.pokestop_id] = {
-                    'pokestop_id': f.pokestop_id,
-                    'enabled': f.enabled,
-                    'latitude': f.latitude,
-                    'longitude': f.longitude,
+                pokestops[f['pokestop_id']] = {
+                    'pokestop_id': f['pokestop_id'],
+                    'enabled': f['enabled'],
+                    'latitude': f['latitude'],
+                    'longitude': f['longitude'],
                     'last_modified': datetime.utcfromtimestamp(
-                        f.last_modified / 1000.0),
+                        f['last_modified'] / 1000.0),
                     'lure_expiration': lure_expiration,
                     'active_fort_modifier': active_pokemon_id
                 }
@@ -277,26 +277,23 @@ class Pogom(Flask):
                     l_e = None
                     if lure_expiration is not None:
                         l_e = calendar.timegm(lure_expiration.timetuple())
-                    wh_pokestop = pokestops[f.id].copy()
+                    wh_pokestop = pokestops[f['id']].copy()
                     wh_pokestop.update({
-                        'pokestop_id': f.pokestop_id,
-                        'last_modified': f.last_modified,
+                        'pokestop_id': f['pokestop_id'],
+                        'last_modified': f['last_modified'],
                         'lure_expiration': l_e,
                     })
                     wh_update_queue.put(('pokestop', wh_pokestop))
 
         if gyms_dict:
-            {
-                "raidPokemon":145
-            }
-            stop_ids = [f.gym_id for f in gyms_dict]
+            stop_ids = [f['gym_id'] for f in gyms_dict]
             for f in gyms_dict:
-                b64_gym_id = str(f.gym_id)
-                park = Gym.get_gyms_park(f.gym_id)
+                b64_gym_id = str(f['gym_id'])
+                park = Gym.get_gyms_park(f['gym_id'])
 
                 if 'gym' in args.wh_types:
                     raid_active_until = 0
-                    raid_end_ms = f.raidEndMs
+                    raid_end_ms = f['raidEndMs']
 
                     # Explicitly set 'webhook_data', in case we want to change
                     # the information pushed to webhooks.  Similar to above
@@ -305,83 +302,83 @@ class Pogom(Flask):
                         'gym_id':
                             b64_gym_id,
                         'team_id':
-                            f.team,
+                            f['team'],
                         'park':
                             park,
                         'guard_pokemon_id':
-                            f.guardingPokemonIdentifier,
+                            f['guardingPokemonIdentifier'],
                         'slots_available':
-                            f.slotsAvailble,
+                            f['slotsAvailble'],
                         'total_cp':
                             0,
                         'enabled':
-                            f.enabled,
+                            f['enabled'],
                         'latitude':
-                            f.latitude,
+                            f['latitude'],
                         'longitude':
-                            f.longitude,
+                            f['longitude'],
                         'lowest_pokemon_motivation':
                             0,
                         'occupied_since':
                             calendar.timegm(datetime.utcnow().timetuple()),
                         'last_modified':
-                            f.lastModifiedTimestampMs,
+                            f['lastModifiedTimestampMs'],
                         'raid_active_until':
                             raid_active_until
                     }))
-                gyms[f.gym_id] = {
+                gyms[f['gym_id']] = {
                     'gym_id':
-                        f.gym_id,
+                        f['gym_id'],
                     'team_id':
-                        f.team,
+                        f['team'],
                     'park':
                         park,
                     'guard_pokemon_id':
-                        f.guardingPokemonIdentifier,
+                        f['guardingPokemonIdentifier'],
                     'slots_available':
-                        f.slotsAvailble,
+                        f['slotsAvailble'],
                     'total_cp':
                         0,
                     'enabled':
-                        f.enabled,
+                        f['enabled'],
                     'latitude':
-                        f.latitude,
+                        f['latitude'],
                     'longitude':
                         f.longitude,
                     'last_modified':
                         datetime.utcfromtimestamp(
-                            f.lastModifiedTimestampMs / 1000.0),
+                            f['lastModifiedTimestampMs'] / 1000.0),
                 }
 
-                if f.raidPokemon > 0:
-                    raids[f.gym_id] = {
-                        'gym_id': f.gym_id,
+                if f['raidPokemon'] > 0:
+                    raids[f['gym_id']] = {
+                        'gym_id': f['gym_id'],
                         'level': 0,
                         'spawn': datetime.utcfromtimestamp(
-                            f.lastModifiedTimestampMs / 1000.0),
+                            f['lastModifiedTimestampMs'] / 1000.0),
                         'start': datetime.utcfromtimestamp(
-                            f.lastModifiedTimestampMs / 1000.0),
+                            f['lastModifiedTimestampMs'] / 1000.0),
                         'end': datetime.utcfromtimestamp(
-                            f.raidEndMs / 1000.0),
-                        'pokemon_id': f.raidPokemon,
+                            f['raidEndMs'] / 1000.0),
+                        'pokemon_id': f['raidPokemon'],
                         'cp': None,
                         'move_1': None,
                         'move_2': None
                     }
 
                     if ('egg' in args.wh_types and
-                            raids[f.gym_id]['pokemon_id'] is None) or (
+                            raids[f['gym_id']]['pokemon_id'] is None) or (
                                 'raid' in args.wh_types and
-                                raids[f.gym_id]['pokemon_id'] is not None):
-                        wh_raid = raids[f.gym_id].copy()
+                                raids[f['gym_id']]['pokemon_id'] is not None):
+                        wh_raid = raids[f['gym_id']].copy()
                         wh_raid.update({
                             'gym_id': b64_gym_id,
-                            'team_id': f.owned_by_team,
+                            'team_id': f['owned_by_team'],
                             'spawn': raid_info.raid_spawn_ms / 1000,
                             'start': raid_info.raid_battle_ms / 1000,
                             'end': raid_info.raid_end_ms / 1000,
-                            'latitude': f.latitude,
-                            'longitude': f.longitude
+                            'latitude': f['latitude'],
+                            'longitude': f['longitude']
                         })
                         wh_update_queue.put(('raid', wh_raid))
 
