@@ -13,7 +13,7 @@ from flask import Flask, abort, jsonify, render_template, request,\
 from flask.json import JSONEncoder
 from flask_compress import Compress
 
-from .models import (Pokemon, Gym, Pokestop, ScannedLocation,
+from .models import (Pokemon, Gym, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
                      SpawnPoint)
 from .utils import (get_args, get_pokemon_name, get_pokemon_types,
