@@ -46,7 +46,6 @@
         <a href="#nav"><span class="label">Options</span></a>
         <h1><a href="./">RocketMapPlusPlus<img class='rocket icon' src='static/images/rocket.png'></a></h1>
         <a href="#stats" id="statsToggle" class="statsNav" style="float: right;"><span class="label">Stats</span></a>
-        <a href="status" target="_blank" style="float: right;"><span class="label">Status</span></a>
       </header>
       <!-- NAV -->
       <nav id="nav">
@@ -82,16 +81,6 @@
                 <div class="onoffswitch">
                   <input id="raid-active-gym-switch" type="checkbox" name="raid-active-gym-switch" class="onoffswitch-checkbox" checked>
                   <label class="onoffswitch-label" for="raid-active-gym-switch">
-                  <span class="switch-label" data-on="On" data-off="Off"></span>
-                  <span class="switch-handle"></span>
-                  </label>
-                </div>
-              </div>
-              <div class="form-control switch-container" id="park-active-gym-wrapper">
-                <h3>Show Park Raids only</h3>
-                <div class="onoffswitch">
-                  <input id="raid-park-gym-switch" type="checkbox" name="raid-park-gym-switch" class="onoffswitch-checkbox" checked>
-                  <label class="onoffswitch-label" for="raid-park-gym-switch">
                   <span class="switch-label" data-on="On" data-off="Off"></span>
                   <span class="switch-handle"></span>
                   </label>
@@ -162,40 +151,6 @@
                   </label>
                 </div>
               </div>
-              <div class="form-control switch-container" id="park-gyms-only-wrapper">
-                <h3>Park Gyms Only</h3>
-                <div class="onoffswitch">
-                  <input id="park-gyms-only-switch" type="checkbox" name="park-gyms-only-switch" class="onoffswitch-checkbox" checked>
-                  <label class="onoffswitch-label" for="park-gyms-only-switch">
-                  <span class="switch-label" data-on="On" data-off="Off"></span>
-                  <span class="switch-handle"></span>
-                  </label>
-                </div>
-              </div>
-              <div class="form-control switch-container" id="min-level-gyms-filter-wrapper">
-                <h3>Minimum Level</h3>
-                <select name="min-level-gyms-filter-switch" id="min-level-gyms-filter-switch">
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                </select>
-              </div>
-              <div class="form-control switch-container" id="max-level-gyms-filter-wrapper">
-                <h3>Maximum Level</h3>
-                <select name="max-level-gyms-filter-switch" id="max-level-gyms-filter-switch">
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                </select>
-              </div>
                <div class="form-control switch-container" id="last-update-gyms-wrapper">
                  <h3>Last Scan</h3>
                 <select name="last-update-gyms-switch" id="last-update-gyms-switch">
@@ -228,30 +183,10 @@
             </div>
               {% endif %}
             <div class="form-control switch-container">
-              <h3>Scanned Locations</h3>
-              <div class="onoffswitch">
-                <input id="scanned-switch" type="checkbox" name="scanned-switch" class="onoffswitch-checkbox">
-                <label class="onoffswitch-label" for="scanned-switch">
-                <span class="switch-label" data-on="On" data-off="Off"></span>
-                <span class="switch-handle"></span>
-                </label>
-              </div>
-            </div>
-            <div class="form-control switch-container">
               <h3>Spawn Points</h3>
               <div class="onoffswitch">
                 <input id="spawnpoints-switch" type="checkbox" name="spawnpoints-switch" class="onoffswitch-checkbox">
                 <label class="onoffswitch-label" for="spawnpoints-switch">
-                <span class="switch-label" data-on="On" data-off="Off"></span>
-                <span class="switch-handle"></span>
-                </label>
-              </div>
-            </div>
-            <div class="form-control switch-container">
-              <h3>Ranges</h3>
-              <div class="onoffswitch">
-                <input id="ranges-switch" type="checkbox" name="ranges-switch" class="onoffswitch-checkbox">
-                <label class="onoffswitch-label" for="ranges-switch">
                 <span class="switch-label" data-on="On" data-off="Off"></span>
                 <span class="switch-handle"></span>
                 </label>
@@ -265,17 +200,6 @@
                 <select id="exclude-pokemon" multiple="multiple"></select>
               </div>
               </label>
-            </div>
-            <div class="form-control switch-container" id="exclude-rarity-wrapper">
-              <h3>Exclude Rarity</h3>
-              <select name="exclude-rarity" id="exclude-rarity">
-                <option value="0">None</option>
-                <option value="1">Common</option>
-                <option value="2">Uncommon and below</option>
-                <option value="3">Rare and below</option>
-                <option value="4">Very Rare and below</option>
-                <option value="5">Ultra Rare and below</option>
-              </select>
             </div>
                   {% if show.encounter %}
             <div class="form-control switch-container">
@@ -295,34 +219,6 @@
           <h3><i class="fa fa-location-arrow fa-fw"></i>Location &amp; Search Settings</h3>
 
           <div>
-              {% if show.fixed_display %}
-            <div class="form-control switch-container">
-              <label for="next-location">
-              <h3>Change search location</h3>
-              <input id="next-location" type="text" name="next-location" placeholder="Change search location">
-              </label>
-            </div>
-            <div class="form-control switch-container">
-              <h3>Lock search marker</h3>
-              <div class="onoffswitch">
-                <input id="lock-marker-switch" type="checkbox" name="lock-marker-switch" class="onoffswitch-checkbox" checked/>
-                <label class="onoffswitch-label" for="lock-marker-switch">
-                <span class="switch-label" data-on="On" data-off="Off"></span>
-                <span class="switch-handle"></span>
-                </label>
-              </div>
-            </div>
-            <div class="form-control switch-container">
-              <h3>Search follows me</h3>
-              <div class="onoffswitch">
-                <input id="geoloc-switch" type="checkbox" name="geoloc-switch" class="onoffswitch-checkbox" checked/>
-                <label class="onoffswitch-label" for="geoloc-switch">
-                <span class="switch-label" data-on="On" data-off="Off"></span>
-                <span class="switch-handle"></span>
-                </label>
-              </div>
-            </div>
-              {% endif %}
             <div class="form-control switch-container" >
               <h3>Start map at my position</h3>
               <div class="onoffswitch">
@@ -333,18 +229,6 @@
                 </label>
               </div>
             </div>
-              {% if show.search_display %}
-            <div class="form-control switch-container">
-              <h3>Search</h3>
-              <div class="onoffswitch">
-                <input id="search-switch" type="checkbox" name="search-switch" class="onoffswitch-checkbox" checked/>
-                <label class="onoffswitch-label" for="search-switch">
-                <span class="switch-label" data-on="On" data-off="Off"></span>
-                <span class="switch-handle"></span>
-                </label>
-              </div>
-            </div>
-              {% endif %}
             <div class="form-control switch-container">
               <h3>Follow me</h3>
               <div class="onoffswitch">
@@ -355,18 +239,6 @@
                 </label>
               </div>
             </div>
-              {% if show.scan_display %}
-            <div class="form-control switch-container">
-              <h3>Scan here button</h3>
-              <div class="onoffswitch">
-                <input id="scan-here-switch" type="checkbox" name="scan-here-switch" class="onoffswitch-checkbox" checked/>
-                <label class="onoffswitch-label" for="scan-here-switch">
-                <span class="switch-label" data-on="On" data-off="Off"></span>
-                <span class="switch-handle"></span>
-                </label>
-              </div>
-            </div>
-              {% endif %}
           </div>
 
             {% if show.pokemons %}
@@ -380,31 +252,7 @@
                 </div>
               </label>
             </div>
-            <div class="form-control">
-              <label for="notify-rarity">
-                <h3>Notify of Rarity</h3>
-                <div style="max-height:165px;overflow-y:auto">
-                  <select id="notify-rarity" multiple="multiple"></select>
-                </div>
-              </label>
-            </div>
 
-              {% if show.encounter %}
-            <div id="notify-perfection-wrapper" style="display:none">
-              <div class="form-control">
-                <label for="notify-perfection">
-                  <h3>Notify of Perfection</h3>
-                  <input id="notify-perfection" type="text" name="notify-perfection" placeholder="Minimum perfection %"/>
-                </label>
-              </div>
-            </div>
-            <div class="form-control">
-              <label for="notify-level">
-                <h3>Notify of Level</h3>
-                <input id="notify-level" type="text" name="notify-level" placeholder="Minimum level"/>
-              </label>
-            </div>
-              {% endif %}
             <div class="form-control switch-container">
               <h3>Notify with sound</h3>
               <div class="onoffswitch">
@@ -500,7 +348,6 @@
         <center><h1>Loading...</h1></center>
       </nav>
       <div id="map"></div>
-      <div class="fab" id="scan-here" style="display:none"></div>
     </div>
     <!-- Load JS libs before custom scripts. -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
