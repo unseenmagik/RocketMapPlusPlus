@@ -40,7 +40,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 32
+db_schema_version = 33
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -1187,7 +1187,7 @@ class WorkerStatus(LatLongModel):
 
 
 class SpawnPoint(LatLongModel):
-    id = UBigIntegerField(primary_key=True)
+    id = Utf8mb4CharField(index=True, max_length=100, primary_key=True)
     latitude = DoubleField()
     longitude = DoubleField()
     last_scanned = DateTimeField(index=True)
