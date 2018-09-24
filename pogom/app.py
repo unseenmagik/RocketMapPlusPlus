@@ -178,6 +178,9 @@ class Pogom(Flask):
             for p in pokemon_dict:
                 spawn_id = p['spawn_id']
 
+                sp = SpawnPoint.get_by_id(spawn_id, p['latitude'], p['longitude'])
+                spawn_points[spawn_id] = sp
+
                 sighting = {
                     'encounter_id': p['id'],
                     'spawnpoint_id': spawn_id,
@@ -329,6 +332,8 @@ class Pogom(Flask):
             self.db_update_queue.put((Gym, gyms))
         if raids:
             self.db_update_queue.put((Raid, raids))
+        if spawn_points:
+            db_update_queue.put((SpawnPoint, spawn_points))
 
         return 'ok'
 
