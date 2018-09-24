@@ -273,7 +273,7 @@ class Pogom(Flask):
                 if f['raidPokemon'] > 0:
                     raids[f['gym_id']] = {
                         'gym_id': f['gym_id'],
-                        'level': 0,
+                        'level': 1,
                         'spawn': datetime.utcfromtimestamp(
                             f['lastModifiedTimestampMs'] / 1000.0),
                         'start': datetime.utcfromtimestamp(
