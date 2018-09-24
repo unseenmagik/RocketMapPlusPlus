@@ -178,7 +178,7 @@ class Pogom(Flask):
             for p in pokemon_dict:
                 spawn_id = p['spawn_id']
 
-                sp = SpawnPoint.get_by_id(spawn_id, p['latitude'], p['longitude'])
+                sp = SpawnPoint.get_by_id(spawn_id, p['lat'], p['lon'])
                 spawn_points[spawn_id] = sp
 
                 sighting = {
