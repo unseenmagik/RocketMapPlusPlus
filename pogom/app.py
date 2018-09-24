@@ -132,6 +132,28 @@ class Pogom(Flask):
         new_spawn_points = []
         sp_id_list = []
 
+        raidbosses = {
+            150 : 5,
+            76  : 4,
+            112 : 4,
+            131 : 4,
+            143 : 4,
+            65  : 3,
+            68  : 3,
+            106 : 3,
+            107 : 3,
+            123 : 3,
+            82  : 2,
+            108 : 2,
+            125 : 2,
+            126 : 2,
+            1   : 1,
+            4   : 1,
+            7   : 1,
+            129 : 1,
+            147 : 1
+        }
+
         now_date = datetime.now()
 
         now_secs = date_secs(now_date)
@@ -273,7 +295,7 @@ class Pogom(Flask):
                 if f['raidPokemon'] > 0:
                     raids[f['gym_id']] = {
                         'gym_id': f['gym_id'],
-                        'level': 1,
+                        'level': raidbosses.get(f['raidPokemon'], 1),
                         'spawn': datetime.utcfromtimestamp(
                             f['lastModifiedTimestampMs'] / 1000.0),
                         'start': datetime.utcfromtimestamp(
