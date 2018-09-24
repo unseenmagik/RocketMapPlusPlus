@@ -333,7 +333,7 @@ class Pogom(Flask):
         if raids:
             self.db_update_queue.put((Raid, raids))
         if spawn_points:
-            db_update_queue.put((SpawnPoint, spawn_points))
+            self.db_update_queue.put((SpawnPoint, spawn_points))
 
         return 'ok'
 
