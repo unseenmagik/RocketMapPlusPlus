@@ -421,6 +421,15 @@ def main():
 
         log.debug('Starting a %s search thread', args.scheduler)
 
+    if args.rarity_update_frequency:
+        t = Thread(target=dynamic_rarity_refresher,
+                   name='dynamic-rarity')
+        t.daemon = True
+        t.start()
+        log.info('Dynamic rarity is enabled.')
+    else:
+        log.info('Dynamic rarity is disabled.')
+
     if args.cors:
         CORS(app)
 
