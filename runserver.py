@@ -28,6 +28,8 @@ from pogom.models import (init_database, create_tables, drop_tables,
 from pogom.osm import update_ex_gyms
 from time import strftime
 
+from geopy.geocoders import GoogleV3
+
 
 class LogFilter(logging.Filter):
 
@@ -178,6 +180,16 @@ def get_db_updates_queue():
     global db_updates_queue
     return db_updates_queue
 
+def get_pos_by_name(location_name):
+    geolocator = GoogleV3()
+    loc = geolocator.geocode(location_name, timeout=10)
+    if not loc:
+        return None
+
+    log.info("Location for '%s' found: %s", location_name, loc.address)
+    log.info('Coordinates (lat/long/alt) for location: %s %s %s', loc.latitude, loc.longitude, loc.altitude)
+
+    return (loc.latitude, loc.longitude, loc.altitude)
 
 def extract_coordinates(location):
     # Use lat/lng directly if matches such a pattern.
@@ -188,7 +200,7 @@ def extract_coordinates(location):
         position = (float(res.group(1)), float(res.group(2)), 0)
     else:
         log.debug('Looking up coordinates in API')
-        position = util.get_pos_by_name(location)
+        position = get_pos_by_name(location)
 
     if position is None or not any(position):
         log.error("Location not found: '{}'".format(location))
