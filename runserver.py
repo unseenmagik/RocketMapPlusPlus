@@ -17,19 +17,15 @@ from flask_cors import CORS
 from flask_cache_bust import init_cache_busting
 
 from pogom.app import Pogom
-from pogom.utils import (get_args, now, gmaps_reverse_geolocate,
-                         log_resource_usage_loop, get_debug_dump_link,
-                         dynamic_loading_refresher, dynamic_rarity_refresher)
+from pogom.utils import (get_args, now, log_resource_usage_loop, get_debug_dump_link,
+                         dynamic_rarity_refresher)
 from pogom.altitude import get_gmaps_altitude
 
 from pogom.models import (init_database, create_tables, drop_tables,
-                          PlayerLocale, db_updater, clean_db_loop,
+                          db_updater, clean_db_loop,
                           verify_table_encoding, verify_database_schema)
-from pogom.webhook import wh_updater
 
 from pogom.osm import update_ex_gyms
-from pogom.proxy import initialize_proxies
-from pogom.search import search_overseer_thread
 from time import strftime
 
 
@@ -213,12 +209,6 @@ def main():
 
     global db_updates_queue
 
-    # Abort if only-server and no-server are used together.
-    if args.only_server and args.no_server:
-        log.critical(
-            "You can't use no-server and only-server at the same time, silly.")
-        sys.exit(1)
-
     # Abort if status name is not valid.
     regexp = re.compile('^([\w\s\-.]+)$')
     if not regexp.match(args.status_name):
@@ -234,16 +224,8 @@ def main():
         sys.exit(1)
 
     # Let's not forget to run Grunt / Only needed when running with webserver.
-    if not args.no_server and not validate_assets(args):
+    if validate_assets(args):
         sys.exit(1)
-
-    # Make sure they are warned.
-    if args.no_version_check and not args.only_server:
-        log.warning('You are running RocketMap in No Version Check mode. '
-                    "If you don't know what you're doing, this mode "
-                    'can have negative consequences, and you will not '
-                    'receive support running in NoVC mode. '
-                    'You have been warned.')
 
     position = extract_coordinates(args.location)
 
@@ -278,7 +260,7 @@ def main():
              'enabled' if args.encounter else 'disabled')
 
     app = None
-    if not args.no_server and not args.clear_db:
+    if not args.clear_db:
         app = Pogom(__name__,
                     root_path=os.path.dirname(
                               os.path.abspath(__file__)).decode('utf8'),
@@ -331,95 +313,6 @@ def main():
         t = Thread(target=clean_db_loop, name='db-cleaner', args=(args,))
         t.daemon = True
         t.start()
-
-    # WH updates queue & WH unique key LFU caches.
-    # The LFU caches will stop the server from resending the same data an
-    # infinite number of times. The caches will be instantiated in the
-    # webhook's startup code.
-    wh_updates_queue = Queue()
-    wh_key_cache = {}
-
-    if not args.wh_types:
-        log.info('Webhook disabled.')
-    else:
-        log.info('Webhook enabled for events: sending %s to %s.',
-                 args.wh_types,
-                 args.webhooks)
-
-        # Thread to process webhook updates.
-        for i in range(args.wh_threads):
-            log.debug('Starting wh-updater worker thread %d', i)
-            t = Thread(target=wh_updater, name='wh-updater-{}'.format(i),
-                       args=(args, wh_updates_queue, wh_key_cache))
-            t.daemon = True
-            t.start()
-
-    if not args.only_server:
-        # Speed limit.
-        log.info('Scanning speed limit %s.',
-                 'set to {} km/h'.format(args.kph)
-                 if args.kph > 0 else 'disabled')
-        log.info('High-level speed limit %s.',
-                 'set to {} km/h'.format(args.hlvl_kph)
-                 if args.hlvl_kph > 0 else 'disabled')
-
-        # Check if we are able to scan.
-        if not can_start_scanning(args):
-            sys.exit(1)
-
-        initialize_proxies(args)
-
-        # Monitor files, update data if they've changed recently.
-        # Keys are 'args' object keys, values are filenames to load.
-        files_to_monitor = {}
-
-        if args.encounter:
-            files_to_monitor['enc_whitelist'] = args.enc_whitelist_file
-            log.info('Encounters are enabled.')
-        else:
-            log.info('Encounters are disabled.')
-
-        if args.webhook_blacklist_file:
-            files_to_monitor['webhook_blacklist'] = args.webhook_blacklist_file
-            log.info('Webhook blacklist is enabled.')
-        elif args.webhook_whitelist_file:
-            files_to_monitor['webhook_whitelist'] = args.webhook_whitelist_file
-            log.info('Webhook whitelist is enabled.')
-        else:
-            log.info('Webhook whitelist/blacklist is disabled.')
-
-        if files_to_monitor:
-            t = Thread(target=dynamic_loading_refresher,
-                       name='dynamic-enclist', args=(files_to_monitor,))
-            t.daemon = True
-            t.start()
-            log.info('Dynamic list refresher is enabled.')
-        else:
-            log.info('Dynamic list refresher is disabled.')
-
-        # Update player locale if not set correctly yet.
-        args.player_locale = PlayerLocale.get_locale(args.location)
-        if not args.player_locale:
-            args.player_locale = gmaps_reverse_geolocate(
-                args.gmaps_key,
-                args.locale,
-                str(position[0]) + ', ' + str(position[1]))
-            db_player_locale = {
-                'location': args.location,
-                'country': args.player_locale['country'],
-                'language': args.player_locale['country'],
-                'timezone': args.player_locale['timezone'],
-            }
-            db_updates_queue.put((PlayerLocale, {0: db_player_locale}))
-        else:
-            log.debug(
-                'Existing player locale has been retrieved from the DB.')
-
-        # Gather the Pokemon!
-        argset = (args, new_location_queue, control_flags,
-                  heartbeat, db_updates_queue, wh_updates_queue)
-
-        log.debug('Starting a %s search thread', args.scheduler)
 
     if args.rarity_update_frequency:
         t = Thread(target=dynamic_rarity_refresher,

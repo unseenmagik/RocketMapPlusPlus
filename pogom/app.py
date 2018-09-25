@@ -82,13 +82,8 @@ class Pogom(Flask):
         self.route("/search_control", methods=['POST'])(
             self.post_search_control)
         self.route("/stats", methods=['GET'])(self.get_stats)
-        self.route("/status", methods=['GET'])(self.get_status)
-        self.route("/status", methods=['POST'])(self.post_status)
         self.route("/gym_data", methods=['GET'])(self.get_gymdata)
-        self.route("/bookmarklet", methods=['GET'])(self.get_bookmarklet)
-        self.route("/inject.js", methods=['GET'])(self.render_inject_js)
         self.route("/submit_token", methods=['POST'])(self.submit_token)
-        self.route("/get_stats", methods=['GET'])(self.get_account_stats)
         self.route("/robots.txt", methods=['GET'])(self.render_robots_txt)
         self.route("/webhook", methods=['POST'])(self.webhook)
         self.route("/serviceWorker.min.js", methods=['GET'])(
@@ -99,11 +94,6 @@ class Pogom(Flask):
 
     def render_service_worker_js(self):
         return send_from_directory('static/dist/js', 'serviceWorker.min.js')
-
-    def get_bookmarklet(self):
-        args = get_args()
-        return render_template('bookmarklet.html',
-                               domain=args.manual_captcha_domain)
 
     def webhook(self):
         request_json = request.get_json()
@@ -338,17 +328,6 @@ class Pogom(Flask):
 
         return 'ok'
 
-    def render_inject_js(self):
-        args = get_args()
-        src = render_template('inject.js',
-                              domain=args.manual_captcha_domain,
-                              timer=args.manual_captcha_refresh)
-
-        response = make_response(src)
-        response.headers['Content-Type'] = 'application/javascript'
-
-        return response
-
     def submit_token(self):
         response = 'error'
         if request.form:
@@ -357,12 +336,6 @@ class Pogom(Flask):
             query.execute()
             response = 'ok'
         r = make_response(response)
-        r.headers.add('Access-Control-Allow-Origin', '*')
-        return r
-
-    def get_account_stats(self):
-        stats = MainWorker.get_account_stats()
-        r = make_response(jsonify(**stats))
         r.headers.add('Access-Control-Allow-Origin', '*')
         return r
 
@@ -778,38 +751,6 @@ class Pogom(Flask):
         gym = Gym.get_gym(gym_id)
 
         return jsonify(gym)
-
-    def get_status(self):
-        args = get_args()
-        visibility_flags = {
-            'custom_css': args.custom_css,
-            'custom_js': args.custom_js
-        }
-        if args.status_page_password is None:
-            abort(404)
-
-        return render_template('status.html',
-                               show=visibility_flags)
-
-    def post_status(self):
-        args = get_args()
-        d = {}
-        if args.status_page_password is None:
-            abort(404)
-
-        if request.form.get('password', None) == args.status_page_password:
-            d['login'] = 'ok'
-            max_status_age = args.status_page_filter
-            if max_status_age > 0:
-                d['main_workers'] = MainWorker.get_recent(max_status_age)
-                d['workers'] = WorkerStatus.get_recent(max_status_age)
-            else:
-                d['main_workers'] = MainWorker.get_all()
-                d['workers'] = WorkerStatus.get_all()
-            d['hashkeys'] = HashKeys.get_obfuscated_keys()
-        else:
-            d['login'] = 'failed'
-        return jsonify(d)
 
 
 class CustomJSONEncoder(JSONEncoder):
