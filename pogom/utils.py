@@ -558,7 +558,7 @@ def get_args():
                         help=('How often (in minutes) the dynamic rarity ' +
                               'should be updated. Decimals allowed. ' +
                               'Default: 0, 0 to disable.'),
-                        type=float, default=0)
+                        type=float, default=60)
     statusp = parser.add_argument_group('Status Page')
     statusp.add_argument('-SPp', '--status-page-password', default=None,
                          help='Set the status page password.')
