@@ -5,31 +5,34 @@
   "main": "Gruntfile.js",
   "dependencies": {
     "babel-preset-env": "^1.6.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
     "eslint": "^3.1.1",
     "eslint-config-standard": "^5.3.5",
     "eslint-plugin-promise": "^2.0.0",
     "eslint-plugin-standard": "^2.0.0",
-    "grunt": "^0.4.5",
     "grunt-babel": "^6.0.0",
     "grunt-cli": "^1.2.0",
-    "grunt-contrib-clean": "latest",
-    "grunt-contrib-concat": "latest",
+    "grunt-contrib-clean": "^2.0.0",
+    "grunt-contrib-concat": "^1.0.1",
     "grunt-contrib-connect": "latest",
-    "grunt-contrib-copy": "latest",
-    "grunt-contrib-cssmin": "latest",
-    "grunt-contrib-uglify": "latest",
-    "grunt-contrib-watch": "latest",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-contrib-cssmin": "^3.0.0",
+    "grunt-contrib-jshint": "^1.1.0",
+    "grunt-contrib-uglify": "^4.0.0",
+    "grunt-contrib-watch": "^1.1.0",
     "grunt-eslint": "^19.0.0",
     "grunt-html-validation": "^0.1.18",
     "grunt-include-file": "^0.1.1",
     "grunt-legacssy": "latest",
-    "grunt-minjson": "latest",
+    "grunt-minjson": "^0.4.0",
     "grunt-newer": "^1.2.0",
-    "grunt-sass": "latest",
+    "grunt-sass": "2.1.0",
     "grunt-unused": "latest",
-    "grunt-usemin": "latest",
+    "grunt-usemin": "^3.1.1",
     "grunt-zip": "^0.17.1",
-    "jit-grunt": "^0.10.0"
+    "jit-grunt": "^0.10.0",
+    "jshint-stylish": "^2.2.1"
   },
   "scripts": {
     "build": "grunt build",
@@ -50,5 +53,8 @@
   "bugs": {
     "url": "https://github.com/RocketMap/RocketMap/issues"
   },
-  "homepage": "https://github.com/RocketMap/RocketMap#readme"
+  "homepage": "https://github.com/RocketMap/RocketMap#readme",
+  "devDependencies": {
+    "grunt": "^1.0.3"
+  }
 }
