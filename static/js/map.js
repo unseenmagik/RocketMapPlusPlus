@@ -685,14 +685,6 @@ function gymLabel(gym, includeMembers = true) {
         if (raid.pokemon_id !== null) {
             let pMove1 = (moves[raid['move_1']] !== undefined) ? i8ln(moves[raid['move_1']]['name']) : 'unknown'
             let pMove2 = (moves[raid['move_2']] !== undefined) ? i8ln(moves[raid['move_2']]['name']) : 'unknown'
-
-            raidStr += `
-                    <div class='move'>
-                      <span class='name'>${pMove1}</span><span class='type ${moves[raid['move_1']]['type'].toLowerCase()}'>${i8ln(moves[raid['move_1']]['type'])}</span>
-                    </div>
-                    <div class='move'>
-                      <span class='name'>${pMove2}</span><span class='type ${moves[raid['move_2']]['type'].toLowerCase()}'>${i8ln(moves[raid['move_2']]['type'])}</span>
-                    </div>`
         }
     }
     const lastScannedStr = getDateStr(gym.last_scanned)
