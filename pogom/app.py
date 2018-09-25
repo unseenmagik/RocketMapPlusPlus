@@ -154,7 +154,7 @@ class Pogom(Flask):
             147 : 1
         }
 
-        now_date = datetime.now()
+        now_date = datetime.utcnow()
 
         now_secs = date_secs(now_date)
 
