@@ -40,7 +40,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 30
+db_schema_version = 33
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -107,7 +107,7 @@ class Pokemon(LatLongModel):
     # We are base64 encoding the ids delivered by the api
     # because they are too big for sqlite to handle.
     encounter_id = UBigIntegerField(primary_key=True)
-    spawnpoint_id = UBigIntegerField(index=True)
+    spawnpoint_id = Utf8mb4CharField(index=True, max_length=100)
     pokemon_id = SmallIntegerField(index=True)
     latitude = DoubleField()
     longitude = DoubleField()
@@ -1187,7 +1187,7 @@ class WorkerStatus(LatLongModel):
 
 
 class SpawnPoint(LatLongModel):
-    id = UBigIntegerField(primary_key=True)
+    id = Utf8mb4CharField(index=True, max_length=100, primary_key=True)
     latitude = DoubleField()
     longitude = DoubleField()
     last_scanned = DateTimeField(index=True)

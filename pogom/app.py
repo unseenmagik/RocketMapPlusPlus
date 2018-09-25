@@ -9,17 +9,18 @@ from datetime import datetime
 from s2sphere import LatLng
 from bisect import bisect_left
 from flask import Flask, abort, jsonify, render_template, request,\
-    make_response, send_from_directory
+    make_response, send_from_directory, json
 from flask.json import JSONEncoder
 from flask_compress import Compress
 
-from .models import (Pokemon, Gym, Pokestop, ScannedLocation,
+from .models import (Pokemon, Gym, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
                      SpawnPoint)
 from .utils import (get_args, get_pokemon_name, get_pokemon_types,
-                    now, dottedQuadToNum)
+                    now, dottedQuadToNum, date_secs)
 from .transform import transform_from_wgs_to_gcj
 from .blacklist import fingerprints, get_ip_blacklist
+from .customLog import printPokemon
 
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -49,6 +50,8 @@ def convert_pokemon_list(pokemon):
 class Pogom(Flask):
 
     def __init__(self, import_name, **kwargs):
+        self.db_update_queue = kwargs.get('db_update_queue')
+        kwargs.pop('db_update_queue')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -79,14 +82,10 @@ class Pogom(Flask):
         self.route("/search_control", methods=['POST'])(
             self.post_search_control)
         self.route("/stats", methods=['GET'])(self.get_stats)
-        self.route("/status", methods=['GET'])(self.get_status)
-        self.route("/status", methods=['POST'])(self.post_status)
         self.route("/gym_data", methods=['GET'])(self.get_gymdata)
-        self.route("/bookmarklet", methods=['GET'])(self.get_bookmarklet)
-        self.route("/inject.js", methods=['GET'])(self.render_inject_js)
         self.route("/submit_token", methods=['POST'])(self.submit_token)
-        self.route("/get_stats", methods=['GET'])(self.get_account_stats)
         self.route("/robots.txt", methods=['GET'])(self.render_robots_txt)
+        self.route("/webhook", methods=['POST'])(self.webhook)
         self.route("/serviceWorker.min.js", methods=['GET'])(
             self.render_service_worker_js)
 
@@ -96,21 +95,238 @@ class Pogom(Flask):
     def render_service_worker_js(self):
         return send_from_directory('static/dist/js', 'serviceWorker.min.js')
 
-    def get_bookmarklet(self):
-        args = get_args()
-        return render_template('bookmarklet.html',
-                               domain=args.manual_captcha_domain)
+    def webhook(self):
+        request_json = request.get_json()
+        pokestops = request_json.get('pokestops')
+        pokemon = request_json.get('pokemon')
+        gyms = request_json.get('gyms')
 
-    def render_inject_js(self):
-        args = get_args()
-        src = render_template('inject.js',
-                              domain=args.manual_captcha_domain,
-                              timer=args.manual_captcha_refresh)
+        return self.parse_map(pokemon, pokestops, gyms)
 
-        response = make_response(src)
-        response.headers['Content-Type'] = 'application/javascript'
+    def parse_map(self, pokemon_dict, pokestops_dict, gyms_dict):
+        pokemon = {}
+        pokestops = {}
+        gyms = {}
+        raids = {}
+        skipped = 0
+        filtered = 0
+        stopsskipped = 0
+        forts = []
+        forts_count = 0
+        wild_pokemon = []
+        wild_pokemon_count = 0
+        nearby_pokemon = 0
+        spawn_points = {}
+        scan_spawn_points = {}
+        sightings = {}
+        new_spawn_points = []
+        sp_id_list = []
 
-        return response
+        raidbosses = {
+            150 : 5,
+            76  : 4,
+            112 : 4,
+            131 : 4,
+            143 : 4,
+            65  : 3,
+            68  : 3,
+            106 : 3,
+            107 : 3,
+            123 : 3,
+            82  : 2,
+            108 : 2,
+            125 : 2,
+            126 : 2,
+            1   : 1,
+            4   : 1,
+            7   : 1,
+            129 : 1,
+            147 : 1
+        }
+
+        now_date = datetime.utcnow()
+
+        now_secs = date_secs(now_date)
+
+        if pokemon_dict:
+            encounter_ids = [p['id'] for p in pokemon_dict]
+            # For all the wild Pokemon we found check if an active Pokemon is in
+            # the database.
+            with Pokemon.database().execution_context():
+                query = (Pokemon
+                         .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
+                         .where((Pokemon.disappear_time >= now_date) &
+                                (Pokemon.encounter_id << encounter_ids))
+                         .dicts())
+
+                # Store all encounter_ids and spawnpoint_ids for the Pokemon in
+                # query.
+                # All of that is needed to make sure it's unique.
+                encountered_pokemon = [
+                    (p['encounter_id'], p['spawnpoint_id']) for p in query]
+
+            for p in pokemon_dict:
+                spawn_id = p['spawn_id']
+
+                sp = SpawnPoint.get_by_id(spawn_id, p['lat'], p['lon'])
+                sp['last_scanned'] = datetime.utcnow()
+                spawn_points[spawn_id] = sp
+
+                sighting = {
+                    'encounter_id': p['id'],
+                    'spawnpoint_id': spawn_id,
+                    'scan_time': now_date,
+                    'tth_secs': None
+                }
+
+                # Keep a list of sp_ids to return.
+                sp_id_list.append(spawn_id)
+
+                if ((p['id'], spawn_id) in encountered_pokemon):
+                    # If Pokemon has been encountered before don't process it.
+                    skipped += 1
+                    continue
+
+                disappear_time = datetime.utcfromtimestamp(p['despawn_time'] / 1000.0)
+
+                pokemon_id = p['type']
+
+                printPokemon(pokemon_id, p['lat'], p['lon'],
+                             disappear_time)
+
+                # Scan for IVs/CP and moves.
+                pokemon_info = False
+
+                pokemon[p['id']] = {
+                    'encounter_id': p['id'],
+                    'spawnpoint_id': spawn_id,
+                    'pokemon_id': pokemon_id,
+                    'latitude': p['lat'],
+                    'longitude': p['lon'],
+                    'disappear_time': disappear_time,
+                    'individual_attack': None,
+                    'individual_defense': None,
+                    'individual_stamina': None,
+                    'move_1': None,
+                    'move_2': None,
+                    'cp': None,
+                    'cp_multiplier': None,
+                    'height': None,
+                    'weight': None,
+                    'gender': p['gender'],
+                    'costume': p['costume'],
+                    'form': p.get('form', 0),
+                    'weather_boosted_condition': None
+                }
+
+        if pokestops_dict:
+            stop_ids = [f['pokestop_id'] for f in pokestops_dict]
+            if stop_ids:
+                with Pokemon.database().execution_context():
+                    query = (Pokestop.select(
+                        Pokestop.pokestop_id, Pokestop.last_modified).where(
+                            (Pokestop.pokestop_id << stop_ids)).dicts())
+                    encountered_pokestops = [(f['pokestop_id'], int(
+                        (f['last_modified'] - datetime(1970, 1, 1)).total_seconds()))
+                                             for f in query]
+
+            for f in pokestops_dict:
+                if f['active_pokemon_id'] > 0:
+                    lure_expiration = (datetime.utcfromtimestamp(
+                        f['last_modified'] / 1000.0) +
+                        timedelta(minutes=args.lure_duration))
+                    active_pokemon_id = f['active_pokemon_id']
+                else:
+                    lure_expiration, active_pokemon_id = None, None
+
+                if ((f['pokestop_id'], int(f['last_modified'] / 1000.0))
+                        in encountered_pokestops):
+                    # If pokestop has been encountered before and hasn't
+                    # changed don't process it.
+                    stopsskipped += 1
+                    continue
+                pokestops[f['pokestop_id']] = {
+                    'pokestop_id': f['pokestop_id'],
+                    'enabled': f['enabled'],
+                    'latitude': f['latitude'],
+                    'longitude': f['longitude'],
+                    'last_modified': datetime.utcfromtimestamp(
+                        f['last_modified'] / 1000.0),
+                    'lure_expiration': lure_expiration,
+                    'active_fort_modifier': active_pokemon_id
+                }
+
+        if gyms_dict:
+            stop_ids = [f['gym_id'] for f in gyms_dict]
+            for f in gyms_dict:
+                b64_gym_id = str(f['gym_id'])
+                park = Gym.get_gyms_park(f['gym_id'])
+
+                gyms[f['gym_id']] = {
+                    'gym_id':
+                        f['gym_id'],
+                    'team_id':
+                        f['team'],
+                    'park':
+                        park,
+                    'guard_pokemon_id':
+                        f['guardingPokemonIdentifier'],
+                    'slots_available':
+                        f['slotsAvailble'],
+                    'total_cp':
+                        0,
+                    'enabled':
+                        f['enabled'],
+                    'latitude':
+                        f['latitude'],
+                    'longitude':
+                        f['longitude'],
+                    'last_modified':
+                        datetime.utcfromtimestamp(
+                            f['lastModifiedTimestampMs'] / 1000.0),
+                }
+
+                if f['raidPokemon'] > 0:
+                    raids[f['gym_id']] = {
+                        'gym_id': f['gym_id'],
+                        'level': raidbosses.get(f['raidPokemon'], 1),
+                        'spawn': datetime.utcfromtimestamp(
+                            f['lastModifiedTimestampMs'] / 1000.0),
+                        'start': datetime.utcfromtimestamp(
+                            f['lastModifiedTimestampMs'] / 1000.0),
+                        'end': datetime.utcfromtimestamp(
+                            f['raidEndMs'] / 1000.0),
+                        'pokemon_id': f['raidPokemon'],
+                        'cp': None,
+                        'move_1': None,
+                        'move_2': None
+                    }
+
+            del forts
+
+        log.info('Parsing found Pokemon: %d (%d filtered), nearby: %d, ' +
+                 'pokestops: %d, gyms: %d, raids: %d.',
+                 len(pokemon) + skipped,
+                 filtered,
+                 nearby_pokemon,
+                 len(pokestops) + stopsskipped,
+                 len(gyms),
+                 len(raids))
+
+        log.debug('Skipped Pokemon: %d, pokestops: %d.', skipped, stopsskipped)
+
+        if pokemon:
+            self.db_update_queue.put((Pokemon, pokemon))
+        if pokestops:
+            self.db_update_queue.put((Pokestop, pokestops))
+        if gyms:
+            self.db_update_queue.put((Gym, gyms))
+        if raids:
+            self.db_update_queue.put((Raid, raids))
+        if spawn_points:
+            self.db_update_queue.put((SpawnPoint, spawn_points))
+
+        return 'ok'
 
     def submit_token(self):
         response = 'error'
@@ -120,12 +336,6 @@ class Pogom(Flask):
             query.execute()
             response = 'ok'
         r = make_response(response)
-        r.headers.add('Access-Control-Allow-Origin', '*')
-        return r
-
-    def get_account_stats(self):
-        stats = MainWorker.get_account_stats()
-        r = make_response(jsonify(**stats))
         r.headers.add('Access-Control-Allow-Origin', '*')
         return r
 
@@ -541,38 +751,6 @@ class Pogom(Flask):
         gym = Gym.get_gym(gym_id)
 
         return jsonify(gym)
-
-    def get_status(self):
-        args = get_args()
-        visibility_flags = {
-            'custom_css': args.custom_css,
-            'custom_js': args.custom_js
-        }
-        if args.status_page_password is None:
-            abort(404)
-
-        return render_template('status.html',
-                               show=visibility_flags)
-
-    def post_status(self):
-        args = get_args()
-        d = {}
-        if args.status_page_password is None:
-            abort(404)
-
-        if request.form.get('password', None) == args.status_page_password:
-            d['login'] = 'ok'
-            max_status_age = args.status_page_filter
-            if max_status_age > 0:
-                d['main_workers'] = MainWorker.get_recent(max_status_age)
-                d['workers'] = WorkerStatus.get_recent(max_status_age)
-            else:
-                d['main_workers'] = MainWorker.get_all()
-                d['workers'] = WorkerStatus.get_all()
-            d['hashkeys'] = HashKeys.get_obfuscated_keys()
-        else:
-            d['login'] = 'failed'
-        return jsonify(d)
 
 
 class CustomJSONEncoder(JSONEncoder):
