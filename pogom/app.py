@@ -76,7 +76,7 @@ class Pogom(Flask):
         self.route("/", methods=['GET'])(self.fullmap)
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/loc", methods=['GET'])(self.loc)
-        self.route("/scan_loc", methods=['GET'])(self.scan_loc)
+        self.route("/scan_loc", methods=['POST'])(self.scan_loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
         self.route("/search_control", methods=['GET'])(self.get_search_control)
@@ -659,6 +659,10 @@ class Pogom(Flask):
         return jsonify(d)
 
     def scan_loc(self):
+        request_json = request.get_json()
+
+        log.info(request)
+
         d = {}
         d['latitude'] = self.current_location[0]
         d['longitude'] = self.current_location[1]
