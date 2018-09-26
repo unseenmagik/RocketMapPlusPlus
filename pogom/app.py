@@ -212,7 +212,7 @@ class Pogom(Flask):
 
         now_secs = date_secs(now_date)
 
-        scan_location = ScannedLocation.get_by_loc({deviceworker['latitude'], deviceworker['longitude']})
+        scan_location = ScannedLocation.get_by_loc([deviceworker['latitude'], deviceworker['longitude']])
 
         done_already = scan_location['done']
         ScannedLocation.update_band(scan_location, now_date)
