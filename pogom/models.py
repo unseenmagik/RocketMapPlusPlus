@@ -728,14 +728,35 @@ class DeviceWorker(LatLongModel):
     deviceid = Utf8mb4CharField(primary_key=True, max_length=200, index=True)
     latitude = DoubleField()
     longitude = DoubleField()
+    centerlatitude = DoubleField()
+    centerlongitude = DoubleField()
+    radius = SmallIntegerField(default=0)
+    step = SmallIntegerField(default=0)
+    last_scanned = DateTimeField(index=True)
+    scans = UBigIntegerField(default=0)
+    direction = Utf8mb4CharField(max_length=1, default="U")
 
-    def new_location(self):
-        self.latitude += 0.0001
-        if self.latitude > 90:
-            self.latitude = -90
-            self.longitude += 0.0001
-            if self.longitude > 180:
-                self.longitude = -180
+    @staticmethod
+    def get_by_id(id, latitude=0, longitude=0):
+        with DeviceWorker.database().execution_context():
+            query = (DeviceWorker
+                     .select()
+                     .where(DeviceWorker.deviceid == id)
+                     .dicts())
+
+            result = query[0] if query else {
+                'deviceid': id,
+                'latitude': latitude,
+                'longitude': longitude,
+                'centerlatitude': latitude,
+                'centerlongitude': longitude,
+                'last_scanned': None,  # Null value used as new flag.
+                'radius': 0,
+                'step': 0,
+                'scans': 0,
+                'direction' : 'U'
+            }
+        return result
 
 
 class ScannedLocation(LatLongModel):

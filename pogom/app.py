@@ -102,6 +102,20 @@ class Pogom(Flask):
         pokemon = request_json.get('pokemon')
         gyms = request_json.get('gyms')
 
+        uuid = request_json.get('uuid')
+        if uuid == ""
+            return ""
+
+        deviceworker = DeviceWorker.get_by_id(uuid)
+
+        deviceworker['scans'] = deviceworker['scans'] + 1
+        deviceworker['last_scanned'] = datetime.utcnow()
+
+        deviceworkers = {}
+        deviceworkers[uuid] = deviceworker
+
+        self.db_update_queue.put((DeviceWorker, deviceworkers))
+
         return self.parse_map(pokemon, pokestops, gyms)
 
     def parse_map(self, pokemon_dict, pokestops_dict, gyms_dict):
@@ -661,11 +675,84 @@ class Pogom(Flask):
     def scan_loc(self):
         request_json = request.get_json()
 
-        log.info(request)
+        uuid = request_json.get('uuid')
+        if uuid == ""
+            return ""
+
+        latitude = round(request_json.get('latitude', 0), 4)
+        longitude = round(request_json.get('longitude', 0), 4)
+
+        deviceworker = DeviceWorker.get_by_id(uuid, latitude, longitude)
+
+        stepsize = 0.0001
+
+        currentlatitude = round(deviceworker['latitude'], 4)
+        currentlongitude = round(deviceworker['longitude'], 4)
+        centerlatitude = round(deviceworker['centerlatitude'], 4)
+        centerlongitude = round(deviceworker['centerlongitude'], 4)
+        radius = deviceworker['radius']
+        step = deviceworker['step']
+        direction = deviceworker['direction']
+
+        if abs(latitude - currentlatitude) > 0.01 or abs(longitude - currentlongitude) > 0.01:
+            centerlatitude = latitude
+            centerlongitude = longitude
+            radius = 0
+            step = 0
+            direction = "U"
+
+        step += 1
+
+        if radius == 0:
+            currentlatitude += stepsize
+        elif direction == "U":
+            currentlatitude += stepsize
+            if currentlatitude > centerlatitude + radius * stepsize:
+                currentlatitude -= stepsize
+                direction = "R"
+                currentlongitude += stepsize
+        elif direction == "R":
+            currentlongitude += stepsize
+            if currentlongitude > centerlongitude + radius * stepsize:
+                currentlongitude -= stepsize
+                direction = "D"
+                currentlatitude -= stepsize
+            elif currentlongitude == centerlongitude:
+                direction = "U"
+                currentlatitude += stepsize
+                radius += 1
+                step = 0
+        elif direction == "D":
+            currentlatitude -= stepsize
+            if currentlatitude < centerlatitude - radius * stepsize:
+                currentlatitude += stepsize
+                direction = "L"
+                currentlongitude -= stepsize
+        elif direction == "L":
+            currentlongitude -= stepsize
+            if currentlongitude < centerlongitude - radius * stepsize:
+                currentlongitude += stepsize
+                direction = "U"
+                currentlatitude += stepsize
+
+        deviceworker['latitude'] = round(currentlatitude, 4)
+        deviceworker['longitude'] = round(currentlongitude, 4)
+        deviceworker['centerlatitude'] = round(centerlatitude, 4)
+        deviceworker['centerlongitude'] = round(centerlongitude, 4)
+        deviceworker['radius'] = radius
+        deviceworker['step'] = step
+        deviceworker['direction'] = direction
+
+        deviceworkers = {}
+        deviceworkers[uuid] = deviceworker
+
+        self.db_update_queue.put((DeviceWorker, deviceworkers))
+
+        # log.info(request)
 
         d = {}
-        d['latitude'] = self.current_location[0]
-        d['longitude'] = self.current_location[1]
+        d['latitude'] = deviceworker['latitude']
+        d['longitude'] = deviceworker['longitude']
 
         return jsonify(d)
 
