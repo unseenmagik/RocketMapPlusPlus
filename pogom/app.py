@@ -709,6 +709,7 @@ class Pogom(Flask):
 
         if radius == 0:
             radius += 1
+            currentlatitude += stepsize
             log.info("Initial step")
         elif direction == "U":
             log.info("Direction U: " + str(currentlatitude) + "," + str(currentlongitude) + " - " + str(centerlatitude) + "," + str(centerlongitude))
