@@ -5,7 +5,7 @@ import calendar
 import logging
 import gc
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from s2sphere import LatLng
 from bisect import bisect_left
 from flask import Flask, abort, jsonify, render_template, request,\
@@ -15,9 +15,9 @@ from flask_compress import Compress
 
 from .models import (Pokemon, Gym, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
-                     SpawnPoint)
+                     SpawnPoint, DeviceWorker, SpawnpointDetectionData, ScanSpawnPoint)
 from .utils import (get_args, get_pokemon_name, get_pokemon_types,
-                    now, dottedQuadToNum, date_secs)
+                    now, dottedQuadToNum, date_secs, clock_between)
 from .transform import transform_from_wgs_to_gcj
 from .blacklist import fingerprints, get_ip_blacklist
 from .customLog import printPokemon
@@ -52,6 +52,8 @@ class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
         self.db_update_queue = kwargs.get('db_update_queue')
         kwargs.pop('db_update_queue')
+        self.spawn_delay = kwargs.get('spawn_delay')
+        kwargs.pop('spawn_delay')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -96,15 +98,78 @@ class Pogom(Flask):
     def render_service_worker_js(self):
         return send_from_directory('static/dist/js', 'serviceWorker.min.js')
 
+    def get_coords(self, pokemon_dict, pokestops_dict, gyms_dict):
+        minlat = None
+        maxlat = None
+        minlong = None
+        maxlong = None
+
+        if pokemon_dict:
+            for p in pokemon_dict:
+                if not minlat or p['lat'] < minlat:
+                    minlat = p['lat']
+                if not maxlat or p['lat'] > maxlat:
+                    maxlat = p['lat']
+                if not minlong or p['lon'] < minlong:
+                    minlong = p['lon']
+                if not maxlong or p['lon'] > maxlong:
+                    maxlong = p['lon']
+
+        if pokestops_dict:
+            for p in pokestops_dict:
+                if not minlat or p['latitude'] < minlat:
+                    minlat = p['latitude']
+                if not maxlat or p['latitude'] > maxlat:
+                    maxlat = p['latitude']
+                if not minlong or p['longitude'] < minlong:
+                    minlong = p['longitude']
+                if not maxlong or p['longitude'] > maxlong:
+                    maxlong = p['longitude']
+
+        if gyms_dict:
+            for p in gyms_dict:
+                if not minlat or p['latitude'] < minlat:
+                    minlat = p['latitude']
+                if not maxlat or p['latitude'] > maxlat:
+                    maxlat = p['latitude']
+                if not minlong or p['longitude'] < minlong:
+                    minlong = p['longitude']
+                if not maxlong or p['longitude'] > maxlong:
+                    maxlong = p['longitude']
+
+        if not minlat:
+            return self.current_location[0], self.current_location[1]
+
+        latitude = round((minlat + maxlat) / 2, 4)
+        longitude = round((minlong + maxlong) / 2, 4)
+
+        return latitude, longitude
+
     def webhook(self):
         request_json = request.get_json()
         pokestops = request_json.get('pokestops')
         pokemon = request_json.get('pokemon')
         gyms = request_json.get('gyms')
 
-        return self.parse_map(pokemon, pokestops, gyms)
+        uuid = request_json.get('uuid')
+        if uuid == "":
+            return ""
 
-    def parse_map(self, pokemon_dict, pokestops_dict, gyms_dict):
+        lat, lng = self.get_coords(pokemon, pokestops, gyms)
+
+        deviceworker = DeviceWorker.get_by_id(uuid, lat, lng)
+
+        deviceworker['scans'] = deviceworker['scans'] + 1
+        deviceworker['last_scanned'] = datetime.utcnow()
+
+        deviceworkers = {}
+        deviceworkers[uuid] = deviceworker
+
+        self.db_update_queue.put((DeviceWorker, deviceworkers))
+
+        return self.parse_map(pokemon, pokestops, gyms, deviceworker)
+
+    def parse_map(self, pokemon_dict, pokestops_dict, gyms_dict, deviceworker):
         pokemon = {}
         pokestops = {}
         gyms = {}
@@ -149,6 +214,12 @@ class Pogom(Flask):
 
         now_secs = date_secs(now_date)
 
+        scan_location = ScannedLocation.get_by_loc([deviceworker['latitude'], deviceworker['longitude']])
+
+        done_already = scan_location['done']
+        ScannedLocation.update_band(scan_location, now_date)
+        just_completed = not done_already and scan_location['done']
+
         if pokemon_dict:
             encounter_ids = [p['id'] for p in pokemon_dict]
             # For all the wild Pokemon we found check if an active Pokemon is in
@@ -172,6 +243,7 @@ class Pogom(Flask):
                 sp = SpawnPoint.get_by_id(spawn_id, p['lat'], p['lon'])
                 sp['last_scanned'] = datetime.utcnow()
                 spawn_points[spawn_id] = sp
+                sp['missed_count'] = 0
 
                 sighting = {
                     'encounter_id': p['id'],
@@ -183,12 +255,66 @@ class Pogom(Flask):
                 # Keep a list of sp_ids to return.
                 sp_id_list.append(spawn_id)
 
+                # time_till_hidden_ms was overflowing causing a negative integer.
+                # It was also returning a value above 3.6M ms.
+                if 0 < p['despawn_time'] < 3600000:
+                    d_t_secs = date_secs(datetime.utcfromtimestamp(
+                        now() + p['despawn_time'] / 1000.0))
+
+                    # Cover all bases, make sure we're using values < 3600.
+                    # Warning: python uses modulo as the least residue, not as
+                    # remainder, so we don't apply it to the result.
+                    residue_unseen = sp['earliest_unseen'] % 3600
+                    residue_seen = sp['latest_seen'] % 3600
+
+                    if (residue_seen != residue_unseen or
+                            not sp['last_scanned']):
+                        log.info('TTH found for spawnpoint %s.', sp['id'])
+                        sighting['tth_secs'] = d_t_secs
+
+                        # Only update when TTH is seen for the first time.
+                        # Just before Pokemon migrations, Niantic sets all TTH
+                        # to the exact time of the migration, not the normal
+                        # despawn time.
+                        sp['latest_seen'] = d_t_secs
+                        sp['earliest_unseen'] = d_t_secs
+
+                scan_spawn_points[len(scan_spawn_points)+1] = {
+                    'spawnpoint': sp['id'],
+                    'scannedlocation': scan_location['cellid']}
+                if not sp['last_scanned']:
+                    log.info('New Spawn Point found.')
+                    new_spawn_points.append(sp)
+
+                    # If we found a new spawnpoint after the location was already
+                    # fully scanned then either it's new, or we had a bad scan.
+                    # Either way, rescan the location.
+                    if scan_location['done'] and not just_completed:
+                        log.warning('Location was fully scanned, and yet a brand '
+                                    'new spawnpoint found.')
+                        log.warning('Redoing scan of this location to identify '
+                                    'new spawnpoint.')
+                        ScannedLocation.reset_bands(scan_location)
+
+                if (not SpawnPoint.tth_found(sp) or sighting['tth_secs'] or
+                        not scan_location['done'] or just_completed):
+                    SpawnpointDetectionData.classify(sp, scan_location, now_secs,
+                                                     sighting)
+                    sightings[p['id']] = sighting
+
+                sp['last_scanned'] = datetime.utcnow()
+
                 if ((p['id'], spawn_id) in encountered_pokemon):
                     # If Pokemon has been encountered before don't process it.
                     skipped += 1
                     continue
 
                 disappear_time = datetime.utcfromtimestamp(p['despawn_time'] / 1000.0)
+
+                start_end = SpawnPoint.start_end(sp, 1)
+                seconds_until_despawn = (start_end[1] - now_secs) % 3600
+                disappear_time = now_date + \
+                    timedelta(seconds=seconds_until_despawn)
 
                 pokemon_id = p['type']
 
@@ -314,7 +440,54 @@ class Pogom(Flask):
                  len(gyms),
                  len(raids))
 
-        log.debug('Skipped Pokemon: %d, pokestops: %d.', skipped, stopsskipped)
+        # Look for spawnpoints within scan_loc that are not here to see if we
+        # can narrow down tth window.
+        for sp in ScannedLocation.linked_spawn_points(scan_location['cellid']):
+            if sp['missed_count'] > 5:
+                    continue
+
+            if sp['id'] in sp_id_list:
+                # Don't overwrite changes from this parse with DB version.
+                sp = spawn_points[sp['id']]
+            else:
+                # If the cell has completed, we need to classify all
+                # the SPs that were not picked up in the scan
+                if just_completed:
+                    SpawnpointDetectionData.classify(sp, scan_location, now_secs)
+                    spawn_points[sp['id']] = sp
+                if SpawnpointDetectionData.unseen(sp, now_secs):
+                    spawn_points[sp['id']] = sp
+                endpoints = SpawnPoint.start_end(sp, self.spawn_delay)
+                if clock_between(endpoints[0], now_secs, endpoints[1]):
+                    sp['missed_count'] += 1
+                    spawn_points[sp['id']] = sp
+                    log.warning('%s kind spawnpoint %s has no Pokemon %d times'
+                                ' in a row.',
+                                sp['kind'], sp['id'], sp['missed_count'])
+                    log.info('Possible causes: Still doing initial scan, super'
+                             ' rare double spawnpoint during')
+                    log.info('hidden period, or Niantic has removed '
+                             'spawnpoint.')
+
+            if (not SpawnPoint.tth_found(sp) and scan_location['done'] and
+                    (now_secs - sp['latest_seen'] -
+                     self.spawn_delay) % 3600 < 60):
+                # Warning: python uses modulo as the least residue, not as
+                # remainder, so we don't apply it to the result. Just a
+                # safety measure until we can guarantee there's never a negative
+                # result.
+                log.warning('Spawnpoint %s was unable to locate a TTH, with '
+                            'only %ss after Pokemon last seen.', sp['id'],
+                            (now_secs % 3600 - sp['latest_seen'] % 3600))
+                log.info('Restarting current 15 minute search for TTH.')
+                if sp['id'] not in sp_id_list:
+                    SpawnpointDetectionData.classify(sp, scan_location, now_secs)
+                sp['latest_seen'] = (sp['latest_seen'] - 60) % 3600
+                sp['earliest_unseen'] = (
+                    sp['earliest_unseen'] + 14 * 60) % 3600
+                spawn_points[sp['id']] = sp
+
+        self.db_update_queue.put((ScannedLocation, {0: scan_location}))
 
         if pokemon:
             self.db_update_queue.put((Pokemon, pokemon))
@@ -326,6 +499,9 @@ class Pogom(Flask):
             self.db_update_queue.put((Raid, raids))
         if spawn_points:
             self.db_update_queue.put((SpawnPoint, spawn_points))
+            self.db_update_queue.put((ScanSpawnPoint, scan_spawn_points))
+            if sightings:
+                self.db_update_queue.put((SpawnpointDetectionData, sightings))
 
         return 'ok'
 
@@ -661,11 +837,94 @@ class Pogom(Flask):
     def scan_loc(self):
         request_json = request.get_json()
 
-        log.info(request)
+        uuid = request_json.get('uuid')
+        if uuid == "":
+            return ""
+
+        latitude = round(request_json.get('latitude', 0), 4)
+        longitude = round(request_json.get('longitude', 0), 4)
+
+        if latitude == 0 and longitude == 0:
+            latitude = round(self.current_location[0], 4)
+            longitude = round(self.current_location[1], 4)
+
+        deviceworker = DeviceWorker.get_by_id(uuid, latitude, longitude)
+
+        stepsize = 0.0001
+
+        currentlatitude = round(deviceworker['latitude'], 4)
+        currentlongitude = round(deviceworker['longitude'], 4)
+        centerlatitude = round(deviceworker['centerlatitude'], 4)
+        centerlongitude = round(deviceworker['centerlongitude'], 4)
+        radius = deviceworker['radius']
+        step = deviceworker['step']
+        direction = deviceworker['direction']
+
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * stepsize or abs(longitude - currentlongitude) > (radius + 1) * stepsize):
+            centerlatitude = latitude
+            centerlongitude = longitude
+            radius = 0
+            step = 0
+            direction = "U"
+
+        step += 1
+
+        if radius == 0:
+            radius += 1
+        elif direction == "U":
+            currentlatitude += stepsize
+            if currentlatitude > centerlatitude + radius * stepsize:
+                currentlatitude -= stepsize
+                direction = "R"
+                currentlongitude += stepsize
+                if abs(currentlongitude - centerlongitude) < stepsize:
+                    direction = "U"
+                    currentlatitude += stepsize
+                    radius += 1
+                    step = 0
+        elif direction == "R":
+            currentlongitude += stepsize
+            if currentlongitude > centerlongitude + radius * stepsize:
+                currentlongitude -= stepsize
+                direction = "D"
+                currentlatitude -= stepsize
+            elif abs(currentlongitude - centerlongitude) < stepsize:
+                direction = "U"
+                currentlatitude += stepsize
+                radius += 1
+                step = 0
+        elif direction == "D":
+            currentlatitude -= stepsize
+            if currentlatitude < centerlatitude - radius * stepsize:
+                currentlatitude += stepsize
+                direction = "L"
+                currentlongitude -= stepsize
+        elif direction == "L":
+            currentlongitude -= stepsize
+            if currentlongitude < centerlongitude - radius * stepsize:
+                currentlongitude += stepsize
+                direction = "U"
+                currentlatitude += stepsize
+
+        deviceworker['latitude'] = round(currentlatitude, 4)
+        deviceworker['longitude'] = round(currentlongitude, 4)
+        deviceworker['centerlatitude'] = round(centerlatitude, 4)
+        deviceworker['centerlongitude'] = round(centerlongitude, 4)
+        deviceworker['radius'] = radius
+        deviceworker['step'] = step
+        deviceworker['direction'] = direction
+        deviceworker['last_scanned'] = datetime.utcnow()
+
+        deviceworkers = {}
+        deviceworkers[uuid] = deviceworker
+
+        self.db_update_queue.put((DeviceWorker, deviceworkers))
+
+        # log.info(request)
 
         d = {}
-        d['latitude'] = self.current_location[0]
-        d['longitude'] = self.current_location[1]
+        d['latitude'] = deviceworker['latitude']
+        d['longitude'] = deviceworker['longitude']
 
         return jsonify(d)
 

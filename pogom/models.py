@@ -40,7 +40,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 33
+db_schema_version = 36
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -722,6 +722,41 @@ class PlayerLocale(BaseModel):
             except PlayerLocale.DoesNotExist:
                 log.debug('This location is not yet in PlayerLocale DB table.')
         return locale
+
+
+class DeviceWorker(LatLongModel):
+    deviceid = Utf8mb4CharField(primary_key=True, max_length=200, index=True)
+    latitude = DoubleField()
+    longitude = DoubleField()
+    centerlatitude = DoubleField()
+    centerlongitude = DoubleField()
+    radius = SmallIntegerField(default=0)
+    step = SmallIntegerField(default=0)
+    last_scanned = DateTimeField(index=True)
+    scans = UBigIntegerField(default=0)
+    direction = Utf8mb4CharField(max_length=1, default="U")
+
+    @staticmethod
+    def get_by_id(id, latitude=0, longitude=0):
+        with DeviceWorker.database().execution_context():
+            query = (DeviceWorker
+                     .select()
+                     .where(DeviceWorker.deviceid == id)
+                     .dicts())
+
+            result = query[0] if query else {
+                'deviceid': id,
+                'latitude': latitude,
+                'longitude': longitude,
+                'centerlatitude': latitude,
+                'centerlongitude': longitude,
+                'last_scanned': None,  # Null value used as new flag.
+                'radius': 0,
+                'step': 0,
+                'scans': 0,
+                'direction' : 'U'
+            }
+        return result
 
 
 class ScannedLocation(LatLongModel):
@@ -1494,7 +1529,7 @@ class SpawnpointDetectionData(BaseModel):
     # Removed ForeignKeyField since it caused MySQL issues.
     encounter_id = UBigIntegerField()
     # Removed ForeignKeyField since it caused MySQL issues.
-    spawnpoint_id = UBigIntegerField(index=True)
+    spawnpoint_id = Utf8mb4CharField(index=True, max_length=100)
     scan_time = DateTimeField()
     tth_secs = SmallIntegerField(null=True)
 
@@ -3080,7 +3115,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, Gym, Raid, ScannedLocation, GymDetails,
               GymMember, GymPokemon, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude, PlayerLocale, HashKeys]
+              Token, LocationAltitude, PlayerLocale, HashKeys, DeviceWorker]
     with db.execution_context():
         for table in tables:
             if not table.table_exists():
@@ -3338,6 +3373,20 @@ def database_migrate(db, old_ver):
             'MODIFY COLUMN `maximum` INTEGER,'
             'MODIFY COLUMN `remaining` INTEGER,'
             'MODIFY COLUMN `peak` INTEGER;'
+        )
+
+    if old_ver < 33:
+        db.execute_sql(
+            'ALTER TABLE `pokemon` MODIFY spawnpoint_id VARCHAR(100);'
+        )
+
+        db.execute_sql(
+            'ALTER TABLE `spawnpoint` MODIFY id VARCHAR(100);'
+        )
+
+    if old_ver < 36:
+        db.execute_sql(
+            'ALTER TABLE `  spawnpointdetectiondata` MODIFY spawnpoint_id VARCHAR(100);'
         )
 
     # Always log that we're done.
