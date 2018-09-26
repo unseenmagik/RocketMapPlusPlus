@@ -40,7 +40,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 33
+db_schema_version = 34
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -722,6 +722,20 @@ class PlayerLocale(BaseModel):
             except PlayerLocale.DoesNotExist:
                 log.debug('This location is not yet in PlayerLocale DB table.')
         return locale
+
+
+class DeviceWorker(LatLongModel):
+    deviceid = Utf8mb4CharField(primary_key=True, max_length=200, index=True)
+    latitude = DoubleField()
+    longitude = DoubleField()
+
+    def new_location(self):
+        self.latitude += 0.0001
+        if self.latitude > 90:
+            self.latitude = -90
+            self.longitude += 0.0001
+            if self.longitude > 180:
+                self.longitude = -180
 
 
 class ScannedLocation(LatLongModel):
