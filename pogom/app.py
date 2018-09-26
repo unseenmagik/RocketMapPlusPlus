@@ -698,12 +698,12 @@ class Pogom(Flask):
         step = deviceworker['step']
         direction = deviceworker['direction']
 
-        #if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > radius * stepsize or abs(longitude - currentlongitude) > radius * stepsize):
-        #    centerlatitude = latitude
-        #    centerlongitude = longitude
-        #    radius = 0
-        #    step = 0
-        #    direction = "U"
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * stepsize or abs(longitude - currentlongitude) > (radius + 1) * stepsize):
+            centerlatitude = latitude
+            centerlongitude = longitude
+            radius = 0
+            step = 0
+            direction = "U"
 
         step += 1
 
