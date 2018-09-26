@@ -106,7 +106,7 @@ class Pogom(Flask):
         if uuid == "":
             return ""
 
-        deviceworker = DeviceWorker.get_by_id(uuid)
+        deviceworker = DeviceWorker.get_by_id(uuid, self.current_location[0], self.current_location[1])
 
         deviceworker['scans'] = deviceworker['scans'] + 1
         deviceworker['last_scanned'] = datetime.utcnow()
@@ -681,6 +681,10 @@ class Pogom(Flask):
 
         latitude = round(request_json.get('latitude', 0), 4)
         longitude = round(request_json.get('longitude', 0), 4)
+
+        if latitude == 0 and longitude == 0:
+            latitude = self.current_location[0]
+            longitude = self.current_location[1]
 
         deviceworker = DeviceWorker.get_by_id(uuid, latitude, longitude)
 
