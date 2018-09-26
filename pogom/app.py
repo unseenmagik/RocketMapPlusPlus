@@ -712,7 +712,7 @@ class Pogom(Flask):
             log.info("Initial step")
         elif direction == "U":
             log.info("Direction U: " + str(currentlatitude) + "," + str(currentlongitude) + " - " + str(centerlatitude) + "," + str(centerlongitude))
-            log.info("Radius " + str(radius) + ", difference: " str(abs(currentlongitude - centerlongitude)))
+            log.info("Radius " + str(radius) + ", difference: " + str(abs(currentlongitude - centerlongitude)))
             currentlatitude += stepsize
             if currentlatitude > centerlatitude + radius * stepsize:
                 currentlatitude -= stepsize
@@ -725,7 +725,7 @@ class Pogom(Flask):
                     step = 0
         elif direction == "R":
             log.info("Direction R: " + str(currentlatitude) + "," + str(currentlongitude) + " - " + str(centerlatitude) + "," + str(centerlongitude))
-            log.info("Radius " + str(radius) + ", difference: " str(abs(currentlongitude - centerlongitude)))
+            log.info("Radius " + str(radius) + ", difference: " + str(abs(currentlongitude - centerlongitude)))
             currentlongitude += stepsize
             if currentlongitude > centerlongitude + radius * stepsize:
                 currentlongitude -= stepsize
