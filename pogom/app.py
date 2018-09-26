@@ -711,7 +711,7 @@ class Pogom(Flask):
             radius += 1
             log.info("Initial step")
         elif direction == "U":
-            log.info("Direction U: " + currentlatitude + "," + currentlongitude + " - " + centerlatitude + "," + centerlongitude)
+            log.info("Direction U: " + str(currentlatitude) + "," + str(currentlongitude) + " - " + str(centerlatitude) + "," + str(centerlongitude))
             currentlatitude += stepsize
             if currentlatitude > centerlatitude + radius * stepsize:
                 currentlatitude -= stepsize
@@ -723,7 +723,7 @@ class Pogom(Flask):
                     radius += 1
                     step = 0
         elif direction == "R":
-            log.info("Direction R: " + currentlatitude + "," + currentlongitude + " - " + centerlatitude + "," + centerlongitude)
+            log.info("Direction R: " + str(currentlatitude) + "," + str(currentlongitude) + " - " + str(centerlatitude) + "," + str(centerlongitude))
             currentlongitude += stepsize
             if currentlongitude > centerlongitude + radius * stepsize:
                 currentlongitude -= stepsize
@@ -735,14 +735,14 @@ class Pogom(Flask):
                 radius += 1
                 step = 0
         elif direction == "D":
-            log.info("Direction D: " + currentlatitude + "," + currentlongitude + " - " + centerlatitude + "," + centerlongitude)
+            log.info("Direction D: " + str(currentlatitude) + "," + str(currentlongitude) + " - " + str(centerlatitude) + "," + str(centerlongitude))
             currentlatitude -= stepsize
             if currentlatitude < centerlatitude - radius * stepsize:
                 currentlatitude += stepsize
                 direction = "L"
                 currentlongitude -= stepsize
         elif direction == "L":
-            log.info("Direction L: " + currentlatitude + "," + currentlongitude + " - " + centerlatitude + "," + centerlongitude)
+            log.info("Direction L: " + str(currentlatitude) + "," + str(currentlongitude) + " - " + str(centerlatitude) + "," + str(centerlongitude))
             currentlongitude -= stepsize
             if currentlongitude < centerlongitude - radius * stepsize:
                 currentlongitude += stepsize
