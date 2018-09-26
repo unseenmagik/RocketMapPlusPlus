@@ -708,7 +708,6 @@ class Pogom(Flask):
         step += 1
 
         if radius == 0:
-            currentlatitude += stepsize
             radius += 1
         elif direction == "U":
             currentlatitude += stepsize
