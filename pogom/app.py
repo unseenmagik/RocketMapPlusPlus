@@ -52,7 +52,7 @@ class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
         self.db_update_queue = kwargs.get('db_update_queue')
         kwargs.pop('db_update_queue')
-        self.spawn_delay = kwars.get('spawn_delay')
+        self.spawn_delay = kwargs.get('spawn_delay')
         kwargs.pop('spawn_delay')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
