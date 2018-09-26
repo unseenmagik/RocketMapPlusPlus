@@ -40,7 +40,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 35
+db_schema_version = 36
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -1529,7 +1529,7 @@ class SpawnpointDetectionData(BaseModel):
     # Removed ForeignKeyField since it caused MySQL issues.
     encounter_id = UBigIntegerField()
     # Removed ForeignKeyField since it caused MySQL issues.
-    spawnpoint_id = UBigIntegerField(index=True)
+    spawnpoint_id = Utf8mb4CharField(index=True, max_length=100)
     scan_time = DateTimeField()
     tth_secs = SmallIntegerField(null=True)
 
