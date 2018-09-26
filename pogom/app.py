@@ -715,6 +715,11 @@ class Pogom(Flask):
                 currentlatitude -= stepsize
                 direction = "R"
                 currentlongitude += stepsize
+                if abs(currentlongitude - centerlongitude) < stepsize:
+                    direction = "U"
+                    currentlatitude += stepsize
+                    radius += 1
+                    step = 0
         elif direction == "R":
             currentlongitude += stepsize
             if currentlongitude > centerlongitude + radius * stepsize:
