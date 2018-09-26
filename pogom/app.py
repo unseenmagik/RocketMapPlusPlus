@@ -5,7 +5,7 @@ import calendar
 import logging
 import gc
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from s2sphere import LatLng
 from bisect import bisect_left
 from flask import Flask, abort, jsonify, render_template, request,\
