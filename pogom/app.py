@@ -103,7 +103,7 @@ class Pogom(Flask):
         gyms = request_json.get('gyms')
 
         uuid = request_json.get('uuid')
-        if uuid == ""
+        if uuid == "":
             return ""
 
         deviceworker = DeviceWorker.get_by_id(uuid)
@@ -676,7 +676,7 @@ class Pogom(Flask):
         request_json = request.get_json()
 
         uuid = request_json.get('uuid')
-        if uuid == ""
+        if uuid == "":
             return ""
 
         latitude = round(request_json.get('latitude', 0), 4)
