@@ -52,6 +52,8 @@ class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
         self.db_update_queue = kwargs.get('db_update_queue')
         kwargs.pop('db_update_queue')
+        self.spawn_delay = kwars.get('spawn_delay')
+        kwargs.pop('spawn_delay')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -455,7 +457,7 @@ class Pogom(Flask):
                     spawn_points[sp['id']] = sp
                 if SpawnpointDetectionData.unseen(sp, now_secs):
                     spawn_points[sp['id']] = sp
-                endpoints = SpawnPoint.start_end(sp, args.spawn_delay)
+                endpoints = SpawnPoint.start_end(sp, self.spawn_delay)
                 if clock_between(endpoints[0], now_secs, endpoints[1]):
                     sp['missed_count'] += 1
                     spawn_points[sp['id']] = sp
@@ -469,7 +471,7 @@ class Pogom(Flask):
 
             if (not SpawnPoint.tth_found(sp) and scan_location['done'] and
                     (now_secs - sp['latest_seen'] -
-                     args.spawn_delay) % 3600 < 60):
+                     self.spawn_delay) % 3600 < 60):
                 # Warning: python uses modulo as the least residue, not as
                 # remainder, so we don't apply it to the result. Just a
                 # safety measure until we can guarantee there's never a negative

@@ -183,10 +183,30 @@
             </div>
               {% endif %}
             <div class="form-control switch-container">
+              <h3>Scanned Locations</h3>
+              <div class="onoffswitch">
+                <input id="scanned-switch" type="checkbox" name="scanned-switch" class="onoffswitch-checkbox">
+                <label class="onoffswitch-label" for="scanned-switch">
+                <span class="switch-label" data-on="On" data-off="Off"></span>
+                <span class="switch-handle"></span>
+                </label>
+              </div>
+            </div>
+            <div class="form-control switch-container">
               <h3>Spawn Points</h3>
               <div class="onoffswitch">
                 <input id="spawnpoints-switch" type="checkbox" name="spawnpoints-switch" class="onoffswitch-checkbox">
                 <label class="onoffswitch-label" for="spawnpoints-switch">
+                <span class="switch-label" data-on="On" data-off="Off"></span>
+                <span class="switch-handle"></span>
+                </label>
+              </div>
+            </div>
+            <div class="form-control switch-container">
+              <h3>Ranges</h3>
+              <div class="onoffswitch">
+                <input id="ranges-switch" type="checkbox" name="ranges-switch" class="onoffswitch-checkbox">
+                <label class="onoffswitch-label" for="ranges-switch">
                 <span class="switch-label" data-on="On" data-off="Off"></span>
                 <span class="switch-handle"></span>
                 </label>
@@ -200,6 +220,17 @@
                 <select id="exclude-pokemon" multiple="multiple"></select>
               </div>
               </label>
+            </div>
+            <div class="form-control switch-container" id="exclude-rarity-wrapper">
+              <h3>Exclude Rarity</h3>
+              <select name="exclude-rarity" id="exclude-rarity">
+                <option value="0">None</option>
+                <option value="1">Common</option>
+                <option value="2">Uncommon and below</option>
+                <option value="3">Rare and below</option>
+                <option value="4">Very Rare and below</option>
+                <option value="5">Ultra Rare and below</option>
+              </select>
             </div>
                   {% if show.encounter %}
             <div class="form-control switch-container">
@@ -249,6 +280,14 @@
                 <h3>Notify of Pokémon</h3>
                 <div style="max-height:165px;overflow-y:auto">
                   <select id="notify-pokemon" multiple="multiple"></select>
+                </div>
+              </label>
+            </div>
+            <div class="form-control">
+              <label for="notify-rarity">
+                <h3>Notify of Rarity</h3>
+                <div style="max-height:165px;overflow-y:auto">
+                  <select id="notify-rarity" multiple="multiple"></select>
                 </div>
               </label>
             </div>
