@@ -3375,6 +3375,20 @@ def database_migrate(db, old_ver):
             'MODIFY COLUMN `peak` INTEGER;'
         )
 
+    if old_ver < 33:
+        db.execute_sql(
+            'ALTER TABLE `pokemon` MODIFY spawnpoint_id VARCHAR(100);'
+        )
+
+        db.execute_sql(
+            'ALTER TABLE `spawnpoint` MODIFY id VARCHAR(100);'
+        )
+
+    if old_ver < 36:
+        db.execute_sql(
+            'ALTER TABLE `  spawnpointdetectiondata` MODIFY spawnpoint_id VARCHAR(100);'
+        )
+
     # Always log that we're done.
     log.info('Schema upgrade complete.')
     return True
