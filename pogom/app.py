@@ -694,7 +694,7 @@ class Pogom(Flask):
         step = deviceworker['step']
         direction = deviceworker['direction']
 
-        if abs(latitude - currentlatitude) > 0.01 or abs(longitude - currentlongitude) > 0.01:
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > 0.01 or abs(longitude - currentlongitude) > 0.01):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
@@ -705,6 +705,7 @@ class Pogom(Flask):
 
         if radius == 0:
             currentlatitude += stepsize
+            radius += 1
         elif direction == "U":
             currentlatitude += stepsize
             if currentlatitude > centerlatitude + radius * stepsize:
@@ -742,6 +743,7 @@ class Pogom(Flask):
         deviceworker['radius'] = radius
         deviceworker['step'] = step
         deviceworker['direction'] = direction
+        deviceworker['last_scanned'] = datetime.utcnow()
 
         deviceworkers = {}
         deviceworkers[uuid] = deviceworker
