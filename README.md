@@ -100,4 +100,6 @@ gym-info
 
 ## ++ Integration
 
-In order to integrate with Pokemon Go ++ you need to have your map running, make sure your iDevice can reach the map and then use the url http://<your-ip>:<rocketmap port>/webhook in the field 'host your own map'.
+In order to integrate with Pokemon Go ++ you need to have your map running, make sure your iDevice can reach the map and then use the url `http://<your-ip>:<rocketmap port>/webhook` in the field 'Worker Mode URL' and enable the Worker Mode.
+
+To let RocketMapPlusPlus decide where to scan next, fill in the url `http://<your-ip>:<rocketmap port>/scan_loc` in the field 'Location Fetch URL' and enable the Location Fetch. RocketMapPlusPlus will send your device to new locations to scan for new pokestops, gyms, raids and pokemon automatically. If you want to play manually again, disable the Location Fetch.
