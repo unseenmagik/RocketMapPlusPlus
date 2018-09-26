@@ -15,7 +15,7 @@ from flask_compress import Compress
 
 from .models import (Pokemon, Gym, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
-                     SpawnPoint, DeviceWorker, SpawnpointDetectionData)
+                     SpawnPoint, DeviceWorker, SpawnpointDetectionData, ScanSpawnPoint)
 from .utils import (get_args, get_pokemon_name, get_pokemon_types,
                     now, dottedQuadToNum, date_secs)
 from .transform import transform_from_wgs_to_gcj
