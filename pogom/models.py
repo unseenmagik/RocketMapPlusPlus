@@ -41,7 +41,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 36
+db_schema_version = 37
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -734,6 +734,7 @@ class DeviceWorker(LatLongModel):
     radius = SmallIntegerField(default=0)
     step = SmallIntegerField(default=0)
     last_scanned = DateTimeField(index=True)
+    last_updated = DateTimeField(index=True, default=datetime.utcnow)
     scans = UBigIntegerField(default=0)
     direction = Utf8mb4CharField(max_length=1, default="U")
 
@@ -752,6 +753,7 @@ class DeviceWorker(LatLongModel):
                 'centerlatitude': latitude,
                 'centerlongitude': longitude,
                 'last_scanned': None,  # Null value used as new flag.
+                'last_updated': datetime.utcnow(),  # Null value used as new flag.
                 'radius': 0,
                 'step': 0,
                 'scans': 0,
@@ -3387,7 +3389,7 @@ def database_migrate(db, old_ver):
 
     if old_ver < 36:
         db.execute_sql(
-            'ALTER TABLE `  spawnpointdetectiondata` MODIFY spawnpoint_id VARCHAR(100);'
+            'ALTER TABLE `spawnpointdetectiondata` MODIFY spawnpoint_id VARCHAR(100);'
         )
 
     # Always log that we're done.
