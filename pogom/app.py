@@ -58,6 +58,8 @@ class Pogom(Flask):
         kwargs.pop('stepsize')
         self.maxradius = kwargs.get('maxradius', 0.0001)
         kwargs.pop('maxradius')
+        self.lure_duration = kwargs.get('lure_duration')
+        kwargs.pop('lure_duration')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -362,7 +364,7 @@ class Pogom(Flask):
                 if f['lure_expiration'] > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
                         f['lure_expiration'] / 1000.0) +
-                        timedelta(minutes=args.lure_duration))
+                        timedelta(minutes=self.lure_duration))
                 else:
                     lure_expiration = None
                 if f['active_pokemon_id'] > 0:
@@ -829,8 +831,8 @@ class Pogom(Flask):
         direction = deviceworker['direction']
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
-        if last_updated < last_scanned:
-            return "No need for a new update"
+#        if last_updated < last_scanned:
+#            return "No need for a new update"
 
         if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.stepsize):
             centerlatitude = latitude
