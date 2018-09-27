@@ -13,7 +13,7 @@ from flask import Flask, abort, jsonify, render_template, request,\
 from flask.json import JSONEncoder
 from flask_compress import Compress
 
-from .models import (Pokemon, Gym, Pokestop, Raid, ScannedLocation,
+from .models import (Pokemon, Gym, GymDetails, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
                      SpawnPoint, DeviceWorker, SpawnpointDetectionData, ScanSpawnPoint)
 from .utils import (get_args, get_pokemon_name, get_pokemon_types,
@@ -173,6 +173,7 @@ class Pogom(Flask):
         pokemon = {}
         pokestops = {}
         gyms = {}
+        gym_details = {}
         raids = {}
         skipped = 0
         filtered = 0
@@ -413,6 +414,15 @@ class Pogom(Flask):
                             f['lastModifiedTimestampMs'] / 1000.0),
                 }
 
+                gym_id = f['gym_id']
+                gym_details[gym_id] = {
+                    'gym_id': gym_id,
+                    'name': f['latitude'] + ',' + f['longitude'],
+                    'description': '',
+                    'url': ''
+                }
+
+
                 if f['raidPokemon'] > 0:
                     raids[f['gym_id']] = {
                         'gym_id': f['gym_id'],
@@ -495,6 +505,8 @@ class Pogom(Flask):
             self.db_update_queue.put((Pokestop, pokestops))
         if gyms:
             self.db_update_queue.put((Gym, gyms))
+        if gym_details:
+            self.db_update_queue.put((GymDetails, gym_details))
         if raids:
             self.db_update_queue.put((Raid, raids))
         if spawn_points:
