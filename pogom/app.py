@@ -54,6 +54,10 @@ class Pogom(Flask):
         kwargs.pop('db_update_queue')
         self.spawn_delay = kwargs.get('spawn_delay')
         kwargs.pop('spawn_delay')
+        self.stepsize = kwargs.get('stepsize', 0.0001)
+        kwargs.pop('stepsize')
+        self.maxradius = kwargs.get('maxradius', 0.0001)
+        kwargs.pop('maxradius')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -165,8 +169,14 @@ class Pogom(Flask):
 
         deviceworker['scans'] = deviceworker['scans'] + 1
         deviceworker['last_scanned'] = datetime.utcnow()
-        deviceworker['latitude'] = lat
-        deviceworker['longitude'] = lng
+        if (abs(deviceworker['centerlatitude'] - lat) > (deviceworker['radius'] + 1) * self.stepsize or abs(deviceworker['centerlongitude'] - lng) > (deviceworker['radius'] + 1) * self.stepsize):
+            deviceworker['centerlatitude'] = lat
+            deviceworker['centerlongitude'] = lng
+            deviceworker['radius'] = 0
+            deviceworker['step'] = 0
+            deviceworker['direction'] = "U"
+            deviceworker['latitude'] = lat
+            deviceworker['longitude'] = lng
 
         deviceworkers = {}
         deviceworkers[uuid] = deviceworker
@@ -807,8 +817,6 @@ class Pogom(Flask):
         if not deviceworker['last_scanned']:
             return "Device need to have posted data first"
 
-        stepsize = 0.0001
-
         currentlatitude = round(deviceworker['latitude'], 4)
         currentlongitude = round(deviceworker['longitude'], 4)
         centerlatitude = round(deviceworker['centerlatitude'], 4)
@@ -817,14 +825,14 @@ class Pogom(Flask):
         step = deviceworker['step']
         direction = deviceworker['direction']
 
-        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * stepsize or abs(longitude - currentlongitude) > (radius + 1) * stepsize):
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
             step = 0
             direction = "U"
 
-        if (abs(centerlatitude - currentlatitude) > (radius + 1) * stepsize or abs(centerlongitude - currentlongitude) > (radius + 1) * stepsize):
+        if (abs(centerlatitude - currentlatitude) > (radius + 1) * self.stepsize or abs(centerlongitude - currentlongitude) > (radius + 1) * self.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
@@ -836,39 +844,46 @@ class Pogom(Flask):
         if radius == 0:
             radius += 1
         elif direction == "U":
-            currentlatitude += stepsize
-            if currentlatitude > centerlatitude + radius * stepsize:
-                currentlatitude -= stepsize
+            currentlatitude += self.stepsize
+            if currentlatitude > centerlatitude + radius * self.stepsize:
+                currentlatitude -= self.stepsize
                 direction = "R"
-                currentlongitude += stepsize
-                if abs(currentlongitude - centerlongitude) < stepsize:
+                currentlongitude += self.stepsize
+                if abs(currentlongitude - centerlongitude) < self.stepsize:
                     direction = "U"
-                    currentlatitude += stepsize
+                    currentlatitude += self.stepsize
                     radius += 1
                     step = 0
         elif direction == "R":
-            currentlongitude += stepsize
-            if currentlongitude > centerlongitude + radius * stepsize:
-                currentlongitude -= stepsize
+            currentlongitude += self.stepsize
+            if currentlongitude > centerlongitude + radius * self.stepsize:
+                currentlongitude -= self.stepsize
                 direction = "D"
-                currentlatitude -= stepsize
-            elif abs(currentlongitude - centerlongitude) < stepsize:
+                currentlatitude -= self.stepsize
+            elif abs(currentlongitude - centerlongitude) < self.stepsize:
                 direction = "U"
-                currentlatitude += stepsize
+                currentlatitude += self.stepsize
                 radius += 1
                 step = 0
         elif direction == "D":
-            currentlatitude -= stepsize
-            if currentlatitude < centerlatitude - radius * stepsize:
-                currentlatitude += stepsize
+            currentlatitude -= self.stepsize
+            if currentlatitude < centerlatitude - radius * self.stepsize:
+                currentlatitude += self.stepsize
                 direction = "L"
-                currentlongitude -= stepsize
+                currentlongitude -= self.stepsize
         elif direction == "L":
-            currentlongitude -= stepsize
-            if currentlongitude < centerlongitude - radius * stepsize:
-                currentlongitude += stepsize
+            currentlongitude -= self.stepsize
+            if currentlongitude < centerlongitude - radius * self.stepsize:
+                currentlongitude += self.stepsize
                 direction = "U"
-                currentlatitude += stepsize
+                currentlatitude += self.stepsize
+
+        if self.maxradius > 0 and radius > self.maxradius:
+            currentlatitude = centerlatitude
+            currentlongitude = centerlongitude
+            radius = 0
+            step = 0
+            direction = "U"
 
         deviceworker['latitude'] = round(currentlatitude, 4)
         deviceworker['longitude'] = round(currentlongitude, 4)
