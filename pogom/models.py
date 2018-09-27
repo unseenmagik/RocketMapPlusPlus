@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from cachetools import TTLCache
 from cachetools import cached
 from timeit import default_timer
+from flask import json
 
 from .utils import (get_pokemon_name, get_pokemon_types,
                     get_args, cellid, in_radius, date_secs, clock_between,

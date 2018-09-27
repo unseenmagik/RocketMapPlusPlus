@@ -155,7 +155,11 @@ class Pogom(Flask):
         if uuid == "":
             return ""
 
-        lat, lng = self.get_coords(pokemon, pokestops, gyms)
+        lat = request_json.get('latitude', 0)
+        lng = request_json.get('longitude', 0)
+
+        if lat == 0 and lng == 0:
+            lat, lng = self.get_coords(pokemon, pokestops, gyms)
 
         deviceworker = DeviceWorker.get_by_id(uuid, lat, lng)
 
@@ -793,11 +797,13 @@ class Pogom(Flask):
         latitude = round(request_json.get('latitude', 0), 4)
         longitude = round(request_json.get('longitude', 0), 4)
 
-        if latitude == 0 and longitude == 0:
-            latitude = round(self.current_location[0], 4)
-            longitude = round(self.current_location[1], 4)
+        #if latitude == 0 and longitude == 0:
+        #    latitude = round(self.current_location[0], 4)
+        #    longitude = round(self.current_location[1], 4)
 
         deviceworker = DeviceWorker.get_by_id(uuid, latitude, longitude)
+        if not deviceworker['last_scanned']:
+            return "Device need to have posted data first"
 
         stepsize = 0.0001
 
