@@ -41,7 +41,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 37
+db_schema_version = 38
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -3390,6 +3390,12 @@ def database_migrate(db, old_ver):
     if old_ver < 36:
         db.execute_sql(
             'ALTER TABLE `spawnpointdetectiondata` MODIFY spawnpoint_id VARCHAR(100);'
+        )
+
+    if old_ver < 38:
+        migrate(
+            migrator.add_column('deviceworker', 'last_updated',
+                                DateTimeField(index=True, default=datetime.utcnow))
         )
 
     # Always log that we're done.
