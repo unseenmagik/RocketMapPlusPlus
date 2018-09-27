@@ -104,6 +104,8 @@ class Pogom(Flask):
         minlong = None
         maxlong = None
 
+        log.info('Starting to get coords using ' + str(len(pokemon_dict)) + ' pokemon, ' + str(len(pokestops_dict)) + ' pokestops and ' + str(len(gyms_dict)) + ' gyms.')
+
         if pokemon_dict:
             for p in pokemon_dict:
                 if not minlat or p['lat'] < minlat:
@@ -114,6 +116,11 @@ class Pogom(Flask):
                     minlong = p['lon']
                 if not maxlong or p['lon'] > maxlong:
                     maxlong = p['lon']
+
+        if minlat:
+            log.info('Coords after pokemon: (' + str(minlat) + ',' + str(minlong) + ') , (' + str(maxlat) + ',' + str(maxlong) + ').')
+        else:
+            log.info('No coords found after pokemon')
 
         if pokestops_dict:
             for p in pokestops_dict:
@@ -126,6 +133,11 @@ class Pogom(Flask):
                 if not maxlong or p['longitude'] > maxlong:
                     maxlong = p['longitude']
 
+        if minlat:
+            log.info('Coords after pokestops: (' + str(minlat) + ',' + str(minlong) + ') , (' + str(maxlat) + ',' + str(maxlong) + ').')
+        else:
+            log.info('No coords found after pokestops')
+
         if gyms_dict:
             for p in gyms_dict:
                 if not minlat or p['latitude'] < minlat:
@@ -136,6 +148,11 @@ class Pogom(Flask):
                     minlong = p['longitude']
                 if not maxlong or p['longitude'] > maxlong:
                     maxlong = p['longitude']
+
+        if minlat:
+            log.info('Coords after gyms: (' + str(minlat) + ',' + str(minlong) + ') , (' + str(maxlat) + ',' + str(maxlong) + ').')
+        else:
+            log.info('No coords found after gyms')
 
         if not minlat:
             return self.current_location[0], self.current_location[1]
