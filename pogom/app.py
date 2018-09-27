@@ -417,7 +417,7 @@ class Pogom(Flask):
                 gym_id = f['gym_id']
                 gym_details[gym_id] = {
                     'gym_id': gym_id,
-                    'name': f['latitude'] + ',' + f['longitude'],
+                    'name': str(f['latitude']) + ',' + str(f['longitude']),
                     'description': '',
                     'url': ''
                 }
