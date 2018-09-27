@@ -287,22 +287,6 @@ class Pogom(Flask):
                     log.info('New Spawn Point found.')
                     new_spawn_points.append(sp)
 
-                    # If we found a new spawnpoint after the location was already
-                    # fully scanned then either it's new, or we had a bad scan.
-                    # Either way, rescan the location.
-                    if scan_location['done'] and not just_completed:
-                        log.warning('Location was fully scanned, and yet a brand '
-                                    'new spawnpoint found.')
-                        log.warning('Redoing scan of this location to identify '
-                                    'new spawnpoint.')
-                        ScannedLocation.reset_bands(scan_location)
-
-                if (not SpawnPoint.tth_found(sp) or sighting['tth_secs'] or
-                        not scan_location['done'] or just_completed):
-                    SpawnpointDetectionData.classify(sp, scan_location, now_secs,
-                                                     sighting)
-                    sightings[p['id']] = sighting
-
                 sp['last_scanned'] = datetime.utcnow()
 
                 if ((p['id'], spawn_id) in encountered_pokemon):
