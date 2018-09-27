@@ -160,6 +160,8 @@ class Pogom(Flask):
         latitude = round((minlat + maxlat) / 2, 4)
         longitude = round((minlong + maxlong) / 2, 4)
 
+        log.info('Center coords: (' + str(latitude) + ',' + str(longitude) + ').')
+
         return latitude, longitude
 
     def webhook(self):
