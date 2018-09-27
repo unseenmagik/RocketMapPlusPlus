@@ -13,7 +13,7 @@ from flask import Flask, abort, jsonify, render_template, request,\
 from flask.json import JSONEncoder
 from flask_compress import Compress
 
-from .models import (Pokemon, Gym, Pokestop, Raid, ScannedLocation,
+from .models import (Pokemon, Gym, GymDetails, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
                      SpawnPoint, DeviceWorker, SpawnpointDetectionData, ScanSpawnPoint)
 from .utils import (get_args, get_pokemon_name, get_pokemon_types,
@@ -173,6 +173,7 @@ class Pogom(Flask):
         pokemon = {}
         pokestops = {}
         gyms = {}
+        gym_details = {}
         raids = {}
         skipped = 0
         filtered = 0
@@ -286,22 +287,6 @@ class Pogom(Flask):
                     log.info('New Spawn Point found.')
                     new_spawn_points.append(sp)
 
-                    # If we found a new spawnpoint after the location was already
-                    # fully scanned then either it's new, or we had a bad scan.
-                    # Either way, rescan the location.
-                    if scan_location['done'] and not just_completed:
-                        log.warning('Location was fully scanned, and yet a brand '
-                                    'new spawnpoint found.')
-                        log.warning('Redoing scan of this location to identify '
-                                    'new spawnpoint.')
-                        ScannedLocation.reset_bands(scan_location)
-
-                if (not SpawnPoint.tth_found(sp) or sighting['tth_secs'] or
-                        not scan_location['done'] or just_completed):
-                    SpawnpointDetectionData.classify(sp, scan_location, now_secs,
-                                                     sighting)
-                    sightings[p['id']] = sighting
-
                 sp['last_scanned'] = datetime.utcnow()
 
                 if ((p['id'], spawn_id) in encountered_pokemon):
@@ -413,6 +398,15 @@ class Pogom(Flask):
                             f['lastModifiedTimestampMs'] / 1000.0),
                 }
 
+                gym_id = f['gym_id']
+                gym_details[gym_id] = {
+                    'gym_id': gym_id,
+                    'name': str(f['latitude']) + ',' + str(f['longitude']),
+                    'description': '',
+                    'url': ''
+                }
+
+
                 if f['raidPokemon'] > 0:
                     raids[f['gym_id']] = {
                         'gym_id': f['gym_id'],
@@ -440,53 +434,6 @@ class Pogom(Flask):
                  len(gyms),
                  len(raids))
 
-        # Look for spawnpoints within scan_loc that are not here to see if we
-        # can narrow down tth window.
-        for sp in ScannedLocation.linked_spawn_points(scan_location['cellid']):
-            if sp['missed_count'] > 5:
-                    continue
-
-            if sp['id'] in sp_id_list:
-                # Don't overwrite changes from this parse with DB version.
-                sp = spawn_points[sp['id']]
-            else:
-                # If the cell has completed, we need to classify all
-                # the SPs that were not picked up in the scan
-                if just_completed:
-                    SpawnpointDetectionData.classify(sp, scan_location, now_secs)
-                    spawn_points[sp['id']] = sp
-                if SpawnpointDetectionData.unseen(sp, now_secs):
-                    spawn_points[sp['id']] = sp
-                endpoints = SpawnPoint.start_end(sp, self.spawn_delay)
-                if clock_between(endpoints[0], now_secs, endpoints[1]):
-                    sp['missed_count'] += 1
-                    spawn_points[sp['id']] = sp
-                    log.warning('%s kind spawnpoint %s has no Pokemon %d times'
-                                ' in a row.',
-                                sp['kind'], sp['id'], sp['missed_count'])
-                    log.info('Possible causes: Still doing initial scan, super'
-                             ' rare double spawnpoint during')
-                    log.info('hidden period, or Niantic has removed '
-                             'spawnpoint.')
-
-            if (not SpawnPoint.tth_found(sp) and scan_location['done'] and
-                    (now_secs - sp['latest_seen'] -
-                     self.spawn_delay) % 3600 < 60):
-                # Warning: python uses modulo as the least residue, not as
-                # remainder, so we don't apply it to the result. Just a
-                # safety measure until we can guarantee there's never a negative
-                # result.
-                log.warning('Spawnpoint %s was unable to locate a TTH, with '
-                            'only %ss after Pokemon last seen.', sp['id'],
-                            (now_secs % 3600 - sp['latest_seen'] % 3600))
-                log.info('Restarting current 15 minute search for TTH.')
-                if sp['id'] not in sp_id_list:
-                    SpawnpointDetectionData.classify(sp, scan_location, now_secs)
-                sp['latest_seen'] = (sp['latest_seen'] - 60) % 3600
-                sp['earliest_unseen'] = (
-                    sp['earliest_unseen'] + 14 * 60) % 3600
-                spawn_points[sp['id']] = sp
-
         self.db_update_queue.put((ScannedLocation, {0: scan_location}))
 
         if pokemon:
@@ -495,6 +442,8 @@ class Pogom(Flask):
             self.db_update_queue.put((Pokestop, pokestops))
         if gyms:
             self.db_update_queue.put((Gym, gyms))
+        if gym_details:
+            self.db_update_queue.put((GymDetails, gym_details))
         if raids:
             self.db_update_queue.put((Raid, raids))
         if spawn_points:
