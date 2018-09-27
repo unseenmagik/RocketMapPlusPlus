@@ -119,7 +119,7 @@ class Pogom(Flask):
                 if not minlong or p['lon'] < minlong:
                     minlong = p['lon']
                 if not maxlong or p['lon'] > maxlong:
-                    maxlong = p['lon']
+q                    maxlong = p['lon']
 
         if pokestops_dict:
             for p in pokestops_dict:
@@ -431,7 +431,7 @@ class Pogom(Flask):
                 if f['raidPokemon'] > 0:
                     raids[f['gym_id']] = {
                         'gym_id': f['gym_id'],
-                        'level': raidbosses.get(f['raidPokemon'], 1),
+                        'level': f[raidevel],
                         'spawn': datetime.utcfromtimestamp(
                             f['raidSpawnMs'] / 1000.0),
                         'start': datetime.utcfromtimestamp(
