@@ -58,6 +58,8 @@ class Pogom(Flask):
         kwargs.pop('stepsize')
         self.maxradius = kwargs.get('maxradius', 0.0001)
         kwargs.pop('maxradius')
+        self.lure_duration = kwargs.get('lure_duration')
+        kwargs.pop('lure_duration')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -359,13 +361,16 @@ class Pogom(Flask):
                                              for f in query]
 
             for f in pokestops_dict:
-                if f['active_pokemon_id'] > 0:
+                if f['lure_expiration'] > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
-                        f['last_modified'] / 1000.0) +
-                        timedelta(minutes=args.lure_duration))
+                        f['lure_expiration'] / 1000.0) +
+                        timedelta(minutes=self.lure_duration))
+                else:
+                    lure_expiration = None
+                if f['active_pokemon_id'] > 0:
                     active_pokemon_id = f['active_pokemon_id']
                 else:
-                    lure_expiration, active_pokemon_id = None, None
+                    active_pokemon_id = None
 
                 if ((f['pokestop_id'], int(f['last_modified'] / 1000.0))
                         in encountered_pokestops):
@@ -428,9 +433,9 @@ class Pogom(Flask):
                         'gym_id': f['gym_id'],
                         'level': raidbosses.get(f['raidPokemon'], 1),
                         'spawn': datetime.utcfromtimestamp(
-                            f['lastModifiedTimestampMs'] / 1000.0),
+                            f['raidSpawnMs'] / 1000.0),
                         'start': datetime.utcfromtimestamp(
-                            f['lastModifiedTimestampMs'] / 1000.0),
+                            f['raidBattleMs'] / 1000.0),
                         'end': datetime.utcfromtimestamp(
                             f['raidEndMs'] / 1000.0),
                         'pokemon_id': f['raidPokemon'],
@@ -824,6 +829,10 @@ class Pogom(Flask):
         radius = deviceworker['radius']
         step = deviceworker['step']
         direction = deviceworker['direction']
+        last_updated = deviceworker['last_updated']
+        last_scanned = deviceworker['last_scanned']
+#        if last_updated < last_scanned:
+#            return "No need for a new update"
 
         if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.stepsize):
             centerlatitude = latitude
@@ -892,7 +901,7 @@ class Pogom(Flask):
         deviceworker['radius'] = radius
         deviceworker['step'] = step
         deviceworker['direction'] = direction
-        deviceworker['last_scanned'] = datetime.utcnow()
+        deviceworker['last_updated'] = datetime.utcnow()
 
         deviceworkers = {}
         deviceworkers[uuid] = deviceworker

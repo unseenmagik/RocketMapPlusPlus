@@ -277,7 +277,7 @@ def main():
                     root_path=os.path.dirname(
                               os.path.abspath(__file__)).decode('utf8'),
                     db_update_queue=db_updates_queue, spawn_delay=args.spawn_delay,
-                    stepsize=args.stepsize, maxradius=args.maxradius)
+                    stepsize=args.stepsize, maxradius=args.maxradius, lure_duration=args.lure_duration)
         app.before_request(app.validate_request)
         app.set_current_location(position)
 
