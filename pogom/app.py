@@ -424,7 +424,7 @@ class Pogom(Flask):
                     'gym_id': gym_id,
                     'name': str(f['latitude']) + ',' + str(f['longitude']),
                     'description': '',
-                    'url': ''
+                    'url': f['imageURL']
                 }
 
 
@@ -832,6 +832,7 @@ class Pogom(Flask):
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
 #        if last_updated < last_scanned:
+#        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
 
         if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.stepsize):
