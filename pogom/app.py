@@ -104,8 +104,6 @@ class Pogom(Flask):
         minlong = None
         maxlong = None
 
-        log.info('Starting to get coords using ' + str(len(pokemon_dict)) + ' pokemon, ' + str(len(pokestops_dict)) + ' pokestops and ' + str(len(gyms_dict)) + ' gyms.')
-
         if pokemon_dict:
             for p in pokemon_dict:
                 if not minlat or p['lat'] < minlat:
@@ -116,11 +114,6 @@ class Pogom(Flask):
                     minlong = p['lon']
                 if not maxlong or p['lon'] > maxlong:
                     maxlong = p['lon']
-
-        if minlat:
-            log.info('Coords after pokemon: (' + str(minlat) + ',' + str(minlong) + ') , (' + str(maxlat) + ',' + str(maxlong) + ').')
-        else:
-            log.info('No coords found after pokemon')
 
         if pokestops_dict:
             for p in pokestops_dict:
@@ -133,11 +126,6 @@ class Pogom(Flask):
                 if not maxlong or p['longitude'] > maxlong:
                     maxlong = p['longitude']
 
-        if minlat:
-            log.info('Coords after pokestops: (' + str(minlat) + ',' + str(minlong) + ') , (' + str(maxlat) + ',' + str(maxlong) + ').')
-        else:
-            log.info('No coords found after pokestops')
-
         if gyms_dict:
             for p in gyms_dict:
                 if not minlat or p['latitude'] < minlat:
@@ -149,18 +137,11 @@ class Pogom(Flask):
                 if not maxlong or p['longitude'] > maxlong:
                     maxlong = p['longitude']
 
-        if minlat:
-            log.info('Coords after gyms: (' + str(minlat) + ',' + str(minlong) + ') , (' + str(maxlat) + ',' + str(maxlong) + ').')
-        else:
-            log.info('No coords found after gyms')
-
         if not minlat:
             return self.current_location[0], self.current_location[1]
 
         latitude = round((minlat + maxlat) / 2, 4)
         longitude = round((minlong + maxlong) / 2, 4)
-
-        log.info('Center coords: (' + str(latitude) + ',' + str(longitude) + ').')
 
         return latitude, longitude
 
@@ -174,7 +155,11 @@ class Pogom(Flask):
         if uuid == "":
             return ""
 
-        lat, lng = self.get_coords(pokemon, pokestops, gyms)
+        lat = request_json.get('latitude', 0)
+        lng = request_json.get('longitude', 0)
+
+        if lat == 0 and lng == 0:
+            lat, lng = self.get_coords(pokemon, pokestops, gyms)
 
         deviceworker = DeviceWorker.get_by_id(uuid, lat, lng)
 

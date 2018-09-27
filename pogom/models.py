@@ -757,8 +757,6 @@ class DeviceWorker(LatLongModel):
                 'scans': 0,
                 'direction' : 'U'
             }
-            if not query:
-                log.info('Device Worker was using coords (' + str(latitude) + ',' + str(longitude) + ') and has as result: ' + json.dumps(result))
         return result
 
 
