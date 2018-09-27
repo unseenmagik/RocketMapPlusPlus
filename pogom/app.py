@@ -428,7 +428,7 @@ class Pogom(Flask):
                 }
 
 
-                if f['raidPokemon'] > 0:
+                if f['raidSpawnMs'] > 0:
                     raids[f['gym_id']] = {
                         'gym_id': f['gym_id'],
                         'level': f['raidLevel'],
@@ -438,7 +438,7 @@ class Pogom(Flask):
                             f['raidBattleMs'] / 1000.0),
                         'end': datetime.utcfromtimestamp(
                             f['raidEndMs'] / 1000.0),
-                        'pokemon_id': f['raidPokemon'],
+                        'pokemon_id': f['raidPokemon'] if f['raidPokemon'] > 0 else None,
                         'cp': None,
                         'move_1': None,
                         'move_2': None
@@ -908,6 +908,10 @@ class Pogom(Flask):
         deviceworkers[uuid] = deviceworker
 
         self.db_update_queue.put((DeviceWorker, deviceworkers))
+
+        scan_location = ScannedLocation.get_by_loc([deviceworker['latitude'], deviceworker['longitude']])
+        ScannedLocation.update_band(scan_location, deviceworker['last_updated'])
+        self.db_update_queue.put((ScannedLocation, {0: scan_location}))
 
         # log.info(request)
 
