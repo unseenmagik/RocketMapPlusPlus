@@ -450,53 +450,6 @@ class Pogom(Flask):
                  len(gyms),
                  len(raids))
 
-        # Look for spawnpoints within scan_loc that are not here to see if we
-        # can narrow down tth window.
-        for sp in ScannedLocation.linked_spawn_points(scan_location['cellid']):
-            if sp['missed_count'] > 5:
-                    continue
-
-            if sp['id'] in sp_id_list:
-                # Don't overwrite changes from this parse with DB version.
-                sp = spawn_points[sp['id']]
-            else:
-                # If the cell has completed, we need to classify all
-                # the SPs that were not picked up in the scan
-                if just_completed:
-                    SpawnpointDetectionData.classify(sp, scan_location, now_secs)
-                    spawn_points[sp['id']] = sp
-                if SpawnpointDetectionData.unseen(sp, now_secs):
-                    spawn_points[sp['id']] = sp
-                endpoints = SpawnPoint.start_end(sp, self.spawn_delay)
-                if clock_between(endpoints[0], now_secs, endpoints[1]):
-                    sp['missed_count'] += 1
-                    spawn_points[sp['id']] = sp
-                    log.warning('%s kind spawnpoint %s has no Pokemon %d times'
-                                ' in a row.',
-                                sp['kind'], sp['id'], sp['missed_count'])
-                    log.info('Possible causes: Still doing initial scan, super'
-                             ' rare double spawnpoint during')
-                    log.info('hidden period, or Niantic has removed '
-                             'spawnpoint.')
-
-            if (not SpawnPoint.tth_found(sp) and scan_location['done'] and
-                    (now_secs - sp['latest_seen'] -
-                     self.spawn_delay) % 3600 < 60):
-                # Warning: python uses modulo as the least residue, not as
-                # remainder, so we don't apply it to the result. Just a
-                # safety measure until we can guarantee there's never a negative
-                # result.
-                log.warning('Spawnpoint %s was unable to locate a TTH, with '
-                            'only %ss after Pokemon last seen.', sp['id'],
-                            (now_secs % 3600 - sp['latest_seen'] % 3600))
-                log.info('Restarting current 15 minute search for TTH.')
-                if sp['id'] not in sp_id_list:
-                    SpawnpointDetectionData.classify(sp, scan_location, now_secs)
-                sp['latest_seen'] = (sp['latest_seen'] - 60) % 3600
-                sp['earliest_unseen'] = (
-                    sp['earliest_unseen'] + 14 * 60) % 3600
-                spawn_points[sp['id']] = sp
-
         self.db_update_queue.put((ScannedLocation, {0: scan_location}))
 
         if pokemon:
