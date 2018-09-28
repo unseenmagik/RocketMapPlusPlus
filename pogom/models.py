@@ -41,7 +41,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 39
+db_schema_version = 40
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -726,7 +726,7 @@ class PlayerLocale(BaseModel):
 
 
 class DeviceWorker(LatLongModel):
-    deviceid = Utf8mb4CharField(primary_key=True, max_length=500, index=True)
+    deviceid = Utf8mb4CharField(primary_key=True, max_length=100, index=True)
     latitude = DoubleField()
     longitude = DoubleField()
     centerlatitude = DoubleField()
@@ -3398,9 +3398,9 @@ def database_migrate(db, old_ver):
                                 DateTimeField(index=True, default=datetime.utcnow))
         )
 
-    if old_ver < 39:
+    if old_ver < 40:
         db.execute_sql(
-            'ALTER TABLE `deviceworker` MODIFY deviceid VARCHAR(500) NOT NULL;'
+            'ALTER TABLE `deviceworker` MODIFY deviceid VARCHAR(100) NOT NULL;'
         )
         db.execute_sql(
             'ALTER TABLE `deviceworker` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
