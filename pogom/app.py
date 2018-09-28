@@ -167,6 +167,10 @@ class Pogom(Flask):
         if lat == 0 and lng == 0:
             lat, lng = self.get_coords(pokemon, pokestops, gyms)
 
+        self.location_queue.put((lat, lng, 0))
+        self.set_current_location((lat, lng, 0))
+        log.info('Changing next location: %s,%s', lat, lng)
+
         deviceworker = DeviceWorker.get_by_id(uuid, lat, lng)
 
         deviceworker['scans'] = deviceworker['scans'] + 1
