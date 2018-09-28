@@ -370,7 +370,7 @@ def get_args():
                         type=str, default='round')
     parser.add_argument('-sts', '--stepsize',
                         help=('Size of the steps'),
-                        type=float, default=0.0001)
+                        type=float, default=0.00007)
     parser.add_argument('-mr', '--maxradius',
                         help=('Maxim radius (factor times the stepsize), use 0 to disable'),
                         type=int, default=0)
