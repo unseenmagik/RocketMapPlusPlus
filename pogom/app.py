@@ -54,9 +54,9 @@ class Pogom(Flask):
         kwargs.pop('db_update_queue')
         self.spawn_delay = kwargs.get('spawn_delay')
         kwargs.pop('spawn_delay')
-        self.stepsize = kwargs.get('stepsize', 0.0001)
+        self.stepsize = kwargs.get('stepsize')
         kwargs.pop('stepsize')
-        self.maxradius = kwargs.get('maxradius', 0.0001)
+        self.maxradius = kwargs.get('maxradius')
         kwargs.pop('maxradius')
         self.lure_duration = kwargs.get('lure_duration')
         kwargs.pop('lure_duration')
@@ -146,8 +146,8 @@ class Pogom(Flask):
         if not minlat:
             return self.current_location[0], self.current_location[1]
 
-        latitude = round((minlat + maxlat) / 2, 4)
-        longitude = round((minlong + maxlong) / 2, 4)
+        latitude = round((minlat + maxlat) / 2, 5)
+        longitude = round((minlong + maxlong) / 2, 5)
 
         return latitude, longitude
 
@@ -811,21 +811,21 @@ class Pogom(Flask):
         if uuid == "":
             return ""
 
-        latitude = round(request_json.get('latitude', 0), 4)
-        longitude = round(request_json.get('longitude', 0), 4)
+        latitude = round(request_json.get('latitude', 0), 5)
+        longitude = round(request_json.get('longitude', 0), 5)
 
         #if latitude == 0 and longitude == 0:
-        #    latitude = round(self.current_location[0], 4)
-        #    longitude = round(self.current_location[1], 4)
+        #    latitude = round(self.current_location[0], 5)
+        #    longitude = round(self.current_location[1], 5)
 
         deviceworker = DeviceWorker.get_by_id(uuid, latitude, longitude)
         if not deviceworker['last_scanned']:
             return "Device need to have posted data first"
 
-        currentlatitude = round(deviceworker['latitude'], 4)
-        currentlongitude = round(deviceworker['longitude'], 4)
-        centerlatitude = round(deviceworker['centerlatitude'], 4)
-        centerlongitude = round(deviceworker['centerlongitude'], 4)
+        currentlatitude = round(deviceworker['latitude'], 5)
+        currentlongitude = round(deviceworker['longitude'], 5)
+        centerlatitude = round(deviceworker['centerlatitude'], 5)
+        centerlongitude = round(deviceworker['centerlongitude'], 5)
         radius = deviceworker['radius']
         step = deviceworker['step']
         direction = deviceworker['direction']
@@ -895,10 +895,10 @@ class Pogom(Flask):
             step = 0
             direction = "U"
 
-        deviceworker['latitude'] = round(currentlatitude, 4)
-        deviceworker['longitude'] = round(currentlongitude, 4)
-        deviceworker['centerlatitude'] = round(centerlatitude, 4)
-        deviceworker['centerlongitude'] = round(centerlongitude, 4)
+        deviceworker['latitude'] = round(currentlatitude, 5)
+        deviceworker['longitude'] = round(currentlongitude, 5)
+        deviceworker['centerlatitude'] = round(centerlatitude, 5)
+        deviceworker['centerlongitude'] = round(centerlongitude, 5)
         deviceworker['radius'] = radius
         deviceworker['step'] = step
         deviceworker['direction'] = direction
