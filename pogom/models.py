@@ -3400,7 +3400,10 @@ def database_migrate(db, old_ver):
 
     if old_ver < 39:
         db.execute_sql(
-            'ALTER TABLE `deviceworker` MODIFY deviceid VARCHAR(500);'
+            'ALTER TABLE `deviceworker` MODIFY deviceid VARCHAR(500) NOT NULL;'
+        )
+        db.execute_sql(
+            'ALTER TABLE `deviceworker` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
         )
 
     # Always log that we're done.
