@@ -52,18 +52,10 @@ class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
         self.db_update_queue = kwargs.get('db_update_queue')
         kwargs.pop('db_update_queue')
-        self.spawn_delay = kwargs.get('spawn_delay')
-        kwargs.pop('spawn_delay')
-        self.stepsize = kwargs.get('stepsize')
-        kwargs.pop('stepsize')
-        self.maxradius = kwargs.get('maxradius')
-        kwargs.pop('maxradius')
-        self.lure_duration = kwargs.get('lure_duration')
-        kwargs.pop('lure_duration')
-        self.dont_move_map = kwargs.get('dont_move_map')
-        kwargs.pop('dont_move_map')
         self.wh_update_queue = kwargs.get('wh_update_queue')
         kwargs.pop('wh_update_queue')
+        self.args = kwargs.get('args')
+        kwargs.pop('args')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -171,7 +163,7 @@ class Pogom(Flask):
         if lat == 0 and lng == 0:
             lat, lng = self.get_coords(pokemon, pokestops, gyms)
 
-        if not self.dont_move_map:
+        if not self.args.dont_move_map:
             self.location_queue.put((lat, lng, 0))
             self.set_current_location((lat, lng, 0))
             log.info('Changing next location: %s,%s', lat, lng)
@@ -180,7 +172,7 @@ class Pogom(Flask):
 
         deviceworker['scans'] = deviceworker['scans'] + 1
         deviceworker['last_scanned'] = datetime.utcnow()
-        if (abs(deviceworker['centerlatitude'] - lat) > (deviceworker['radius'] + 1) * self.stepsize or abs(deviceworker['centerlongitude'] - lng) > (deviceworker['radius'] + 1) * self.stepsize):
+        if (abs(deviceworker['centerlatitude'] - lat) > (deviceworker['radius'] + 100) * self.args.stepsize or abs(deviceworker['centerlongitude'] - lng) > (deviceworker['radius'] + 100) * self.args.stepsize):
             deviceworker['centerlatitude'] = lat
             deviceworker['centerlongitude'] = lng
             deviceworker['radius'] = 0
@@ -358,10 +350,10 @@ class Pogom(Flask):
                     'weather_boosted_condition': None
                 }
 
-            if 'pokemon' in args.wh_types:
-                if (pokemon_id in args.webhook_whitelist or
-                    (not args.webhook_whitelist and pokemon_id
-                     not in args.webhook_blacklist)):
+            if 'pokemon' in self.args.wh_types:
+                if (pokemon_id in self.args.webhook_whitelist or
+                    (not self.args.webhook_whitelist and pokemon_id
+                     not in self.args.webhook_blacklist)):
                     wh_poke = pokemon[p['id']].copy()
                     wh_poke.update({
                         'disappear_time': calendar.timegm(
@@ -417,8 +409,8 @@ class Pogom(Flask):
                 }
 
                 # Send all pokestops to webhooks.
-                if 'pokestop' in args.wh_types or (
-                        'lure' in args.wh_types and
+                if 'pokestop' in self.args.wh_types or (
+                        'lure' in self.args.wh_types and
                         lure_expiration is not None):
                     l_e = None
                     if lure_expiration is not None:
@@ -437,7 +429,7 @@ class Pogom(Flask):
                 b64_gym_id = str(f['gym_id'])
                 park = Gym.get_gyms_park(f['gym_id'])
 
-                if 'gym' in args.wh_types:
+                if 'gym' in self.args.wh_types:
                     raid_active_until = 0
                     raid_battle_ms = f['raidBattleMs']
                     raid_end_ms = f['raidEndMs']
@@ -526,9 +518,9 @@ class Pogom(Flask):
                         'move_2': None
                     }
 
-                    if ('egg' in args.wh_types and
+                    if ('egg' in self.args.wh_types and
                             f['raidPokemon'] == 0) or (
-                                'raid' in args.wh_types and
+                                'raid' in self.args.wh_types and
                                 f['raidPokemon'] > 0):
                         wh_raid = f['gym_id'].copy()
                         wh_raid.update({
@@ -933,14 +925,14 @@ class Pogom(Flask):
 #        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
 
-        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.stepsize):
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.args.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
             step = 0
             direction = "U"
 
-        if (abs(centerlatitude - currentlatitude) > (radius + 1) * self.stepsize or abs(centerlongitude - currentlongitude) > (radius + 1) * self.stepsize):
+        if (abs(centerlatitude - currentlatitude) > (radius + 1) * self.args.stepsize or abs(centerlongitude - currentlongitude) > (radius + 1) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
@@ -952,41 +944,41 @@ class Pogom(Flask):
         if radius == 0:
             radius += 1
         elif direction == "U":
-            currentlatitude += self.stepsize
-            if currentlatitude > centerlatitude + radius * self.stepsize:
-                currentlatitude -= self.stepsize
+            currentlatitude += self.args.stepsize
+            if currentlatitude > centerlatitude + radius * self.args.stepsize:
+                currentlatitude -= self.args.stepsize
                 direction = "R"
-                currentlongitude += self.stepsize
-                if abs(currentlongitude - centerlongitude) < self.stepsize:
+                currentlongitude += self.args.stepsize
+                if abs(currentlongitude - centerlongitude) < self.args.stepsize:
                     direction = "U"
-                    currentlatitude += self.stepsize
+                    currentlatitude += self.args.stepsize
                     radius += 1
                     step = 0
         elif direction == "R":
-            currentlongitude += self.stepsize
-            if currentlongitude > centerlongitude + radius * self.stepsize:
-                currentlongitude -= self.stepsize
+            currentlongitude += self.args.stepsize
+            if currentlongitude > centerlongitude + radius * self.args.stepsize:
+                currentlongitude -= self.args.stepsize
                 direction = "D"
-                currentlatitude -= self.stepsize
-            elif abs(currentlongitude - centerlongitude) < self.stepsize:
+                currentlatitude -= self.args.stepsize
+            elif abs(currentlongitude - centerlongitude) < self.args.stepsize:
                 direction = "U"
-                currentlatitude += self.stepsize
+                currentlatitude += self.args.stepsize
                 radius += 1
                 step = 0
         elif direction == "D":
-            currentlatitude -= self.stepsize
-            if currentlatitude < centerlatitude - radius * self.stepsize:
-                currentlatitude += self.stepsize
+            currentlatitude -= self.args.stepsize
+            if currentlatitude < centerlatitude - radius * self.args.stepsize:
+                currentlatitude += self.args.stepsize
                 direction = "L"
-                currentlongitude -= self.stepsize
+                currentlongitude -= self.args.stepsize
         elif direction == "L":
-            currentlongitude -= self.stepsize
-            if currentlongitude < centerlongitude - radius * self.stepsize:
-                currentlongitude += self.stepsize
+            currentlongitude -= self.args.stepsize
+            if currentlongitude < centerlongitude - radius * self.args.stepsize:
+                currentlongitude += self.args.stepsize
                 direction = "U"
-                currentlatitude += self.stepsize
+                currentlatitude += self.args.stepsize
 
-        if self.maxradius > 0 and radius > self.maxradius:
+        if self.args.maxradius > 0 and radius > self.args.maxradius:
             currentlatitude = centerlatitude
             currentlongitude = centerlongitude
             radius = 0

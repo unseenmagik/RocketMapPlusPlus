@@ -274,9 +274,7 @@ def main():
         app = Pogom(__name__,
                     root_path=os.path.dirname(
                               os.path.abspath(__file__)).decode('utf8'),
-                    db_update_queue=db_updates_queue, spawn_delay=args.spawn_delay,
-                    stepsize=args.stepsize, maxradius=args.maxradius, lure_duration=args.lure_duration,
-                    dont_move_map=args.dont_move_map, wh_update_queue=wh_updates_queue)
+                    db_update_queue=db_updates_queue, wh_update_queue=wh_updates_queue, args=args)
         app.before_request(app.validate_request)
         app.set_current_location(position)
 
