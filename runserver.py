@@ -24,6 +24,7 @@ from pogom.altitude import get_gmaps_altitude
 from pogom.models import (init_database, create_tables, drop_tables,
                           db_updater, clean_db_loop,
                           verify_table_encoding, verify_database_schema)
+from pogom.webhook import wh_updater
 
 from pogom.osm import update_ex_gyms
 from time import strftime
