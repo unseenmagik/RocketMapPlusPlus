@@ -522,7 +522,7 @@ class Pogom(Flask):
                             f['raidPokemon'] == 0) or (
                                 'raid' in self.args.wh_types and
                                 f['raidPokemon'] > 0):
-                        wh_raid = f['gym_id'].copy()
+                        wh_raid = raids[f['gym_id']].copy()
                         wh_raid.update({
                             'gym_id': b64_gym_id,
                             'team_id': f['team'],
