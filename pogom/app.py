@@ -62,6 +62,8 @@ class Pogom(Flask):
         kwargs.pop('lure_duration')
         self.dont_move_map = kwargs.get('dont_move_map')
         kwargs.pop('dont_move_map')
+        self.wh_update_queue = kwargs.get('wh_update_queue')
+        kwargs.pop('wh_update_queue')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -356,6 +358,24 @@ class Pogom(Flask):
                     'weather_boosted_condition': None
                 }
 
+            if 'pokemon' in args.wh_types:
+                if (pokemon_id in args.webhook_whitelist or
+                    (not args.webhook_whitelist and pokemon_id
+                     not in args.webhook_blacklist)):
+                    wh_poke = pokemon[p['id']].copy()
+                    wh_poke.update({
+                        'disappear_time': calendar.timegm(
+                            disappear_time.timetuple()),
+                        'last_modified_time': now(),
+                        'time_until_hidden_ms': p['despawn_time'],
+                        'verified': SpawnPoint.tth_found(sp),
+                        'seconds_until_despawn': seconds_until_despawn,
+                        'spawn_start': start_end[0],
+                        'spawn_end': start_end[1],
+                        'player_level': 30
+                    })
+                    self.wh_update_queue.put(('pokemon', wh_poke))
+
         if pokestops_dict:
             stop_ids = [f['pokestop_id'] for f in pokestops_dict]
             if stop_ids:
@@ -396,11 +416,66 @@ class Pogom(Flask):
                     'active_fort_modifier': active_pokemon_id
                 }
 
+                # Send all pokestops to webhooks.
+                if 'pokestop' in args.wh_types or (
+                        'lure' in args.wh_types and
+                        lure_expiration is not None):
+                    l_e = None
+                    if lure_expiration is not None:
+                        l_e = calendar.timegm(lure_expiration.timetuple())
+                    wh_pokestop = pokestops[f.id].copy()
+                    wh_pokestop.update({
+                        'pokestop_id': f['pokestop_id'],
+                        'last_modified': f['last_modified'],
+                        'lure_expiration': l_e,
+                    })
+                    self.wh_update_queue.put(('pokestop', wh_pokestop))
+
         if gyms_dict:
             stop_ids = [f['gym_id'] for f in gyms_dict]
             for f in gyms_dict:
                 b64_gym_id = str(f['gym_id'])
                 park = Gym.get_gyms_park(f['gym_id'])
+
+                if 'gym' in args.wh_types:
+                    raid_active_until = 0
+                    raid_battle_ms = f['raidBattleMs']
+                    raid_end_ms = f['raidEndMs']
+
+                    if raid_battle_ms / 1000 > time.time():
+                        raid_active_until = raid_end_ms / 1000
+
+                    # Explicitly set 'webhook_data', in case we want to change
+                    # the information pushed to webhooks.  Similar to above
+                    # and previous commits.
+                    self.wh_update_queue.put(('gym', {
+                        'gym_id':
+                            b64_gym_id,
+                        'team_id':
+                            f['team'],
+                        'park':
+                            park,
+                        'guard_pokemon_id':
+                            f['guardingPokemonIdentifier'],
+                        'slots_available':
+                            f['slotsAvailble'],
+                        'total_cp':
+                            0,
+                        'enabled':
+                            f['enabled'],
+                        'latitude':
+                            f['latitude'],
+                        'longitude':
+                            f['longitude'],
+                        'lowest_pokemon_motivation':
+                            0,
+                        'occupied_since':
+                            calendar.timegm((datetime.utcnow()).timetuple()),
+                        'last_modified':
+                            f['lastModifiedTimestampMs'],
+                        'raid_active_until':
+                            raid_active_until
+                    }))
 
                 gyms[f['gym_id']] = {
                     'gym_id':
@@ -450,6 +525,22 @@ class Pogom(Flask):
                         'move_1': None,
                         'move_2': None
                     }
+
+                    if ('egg' in args.wh_types and
+                            f['raidPokemon'] == 0) or (
+                                'raid' in args.wh_types and
+                                f['raidPokemon'] > 0):
+                        wh_raid = f['gym_id'].copy()
+                        wh_raid.update({
+                            'gym_id': b64_gym_id,
+                            'team_id': f['team'],
+                            'spawn': f['raidSpawnMs'] / 1000,
+                            'start': f['raidBattleMs'] / 1000,
+                            'end': f['raidEndMs'] / 1000,
+                            'latitude': f['latitude'],
+                            'longitude': f['longitude']
+                        })
+                        self.wh_update_queue.put(('raid', wh_raid))
 
             del forts
 
