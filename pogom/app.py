@@ -530,7 +530,10 @@ class Pogom(Flask):
                             'start': f['raidBattleMs'] / 1000,
                             'end': f['raidEndMs'] / 1000,
                             'latitude': f['latitude'],
-                            'longitude': f['longitude']
+                            'longitude': f['longitude'],
+                            'cp': 0,
+                            'move_1': 0,
+                            'move_2': 0
                         })
                         self.wh_update_queue.put(('raid', wh_raid))
 
