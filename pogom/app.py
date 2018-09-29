@@ -364,7 +364,17 @@ class Pogom(Flask):
                         'seconds_until_despawn': seconds_until_despawn,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
-                        'player_level': 30
+                        'player_level': 30,
+                        'individual_attack': 0,
+                        'individual_defense': 0,
+                        'individual_stamina': 0,
+                        'move_1': 0,
+                        'move_2': 0,
+                        'cp': 0,
+                        'cp_multiplier': 0,
+                        'height': 0,
+                        'weight': 0,
+                        'weather_boosted_condition': 0
                     })
                     self.wh_update_queue.put(('pokemon', wh_poke))
 
