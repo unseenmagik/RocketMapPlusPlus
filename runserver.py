@@ -24,6 +24,7 @@ from pogom.altitude import get_gmaps_altitude
 from pogom.models import (init_database, create_tables, drop_tables,
                           db_updater, clean_db_loop,
                           verify_table_encoding, verify_database_schema)
+from pogom.webhook import wh_updater
 
 from pogom.osm import update_ex_gyms
 from time import strftime
@@ -61,6 +62,7 @@ log.addHandler(stdout_hdlr)
 log.addHandler(stderr_hdlr)
 
 db_updates_queue = Queue()
+wh_updates_queue = Queue()
 
 
 # Patch to make exceptions in threads cause an exception.
@@ -176,10 +178,6 @@ def startup_db(app, clear_db):
         sys.exit()
     return db
 
-def get_db_updates_queue():
-    global db_updates_queue
-    return db_updates_queue
-
 def get_pos_by_name(location_name, gmaps_key):
     geolocator = GoogleV3(api_key=gmaps_key)
     loc = geolocator.geocode(location_name, timeout=10)
@@ -220,6 +218,7 @@ def main():
     set_log_and_verbosity(log)
 
     global db_updates_queue
+    global wh_updates_queue
 
     # Abort if status name is not valid.
     regexp = re.compile('^([\w\s\-.]+)$')
@@ -276,9 +275,7 @@ def main():
         app = Pogom(__name__,
                     root_path=os.path.dirname(
                               os.path.abspath(__file__)).decode('utf8'),
-                    db_update_queue=db_updates_queue, spawn_delay=args.spawn_delay,
-                    stepsize=args.stepsize, maxradius=args.maxradius, lure_duration=args.lure_duration,
-                    dont_move_map=args.dont_move_map)
+                    db_update_queue=db_updates_queue, wh_update_queue=wh_updates_queue, args=args)
         app.before_request(app.validate_request)
         app.set_current_location(position)
 
@@ -336,6 +333,27 @@ def main():
         log.info('Dynamic rarity is enabled.')
     else:
         log.info('Dynamic rarity is disabled.')
+
+    # WH updates queue & WH unique key LFU caches.
+    # The LFU caches will stop the server from resending the same data an
+    # infinite number of times. The caches will be instantiated in the
+    # webhook's startup code.
+    wh_key_cache = {}
+
+    if not args.wh_types:
+        log.info('Webhook disabled.')
+    else:
+        log.info('Webhook enabled for events: sending %s to %s.',
+                 args.wh_types,
+                 args.webhooks)
+
+        # Thread to process webhook updates.
+        for i in range(args.wh_threads):
+            log.debug('Starting wh-updater worker thread %d', i)
+            t = Thread(target=wh_updater, name='wh-updater-{}'.format(i),
+                       args=(args, wh_updates_queue, wh_key_cache))
+            t.daemon = True
+            t.start()
 
     if args.cors:
         CORS(app)
