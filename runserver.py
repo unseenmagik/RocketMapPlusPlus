@@ -180,8 +180,8 @@ def get_db_updates_queue():
     global db_updates_queue
     return db_updates_queue
 
-def get_pos_by_name(location_name):
-    geolocator = GoogleV3()
+def get_pos_by_name(location_name, gmaps_key):
+    geolocator = GoogleV3(api_key=gmaps_key)
     loc = geolocator.geocode(location_name, timeout=10)
     if not loc:
         return None
@@ -191,7 +191,7 @@ def get_pos_by_name(location_name):
 
     return (loc.latitude, loc.longitude, loc.altitude)
 
-def extract_coordinates(location):
+def extract_coordinates(location, gmaps_key):
     # Use lat/lng directly if matches such a pattern.
     prog = re.compile("^(\-?\d+\.\d+),?\s?(\-?\d+\.\d+)$")
     res = prog.match(location)
@@ -200,7 +200,7 @@ def extract_coordinates(location):
         position = (float(res.group(1)), float(res.group(2)), 0)
     else:
         log.debug('Looking up coordinates in API')
-        position = get_pos_by_name(location)
+        position = get_pos_by_name(location, gmaps_key)
 
     if position is None or not any(position):
         log.error("Location not found: '{}'".format(location))
@@ -239,7 +239,7 @@ def main():
     if not validate_assets(args):
         sys.exit(1)
 
-    position = extract_coordinates(args.location)
+    position = extract_coordinates(args.location, args.gmaps_key)
 
     # Use the latitude and longitude to get the local altitude from Google.
     (altitude, status) = get_gmaps_altitude(position[0], position[1],
@@ -277,7 +277,8 @@ def main():
                     root_path=os.path.dirname(
                               os.path.abspath(__file__)).decode('utf8'),
                     db_update_queue=db_updates_queue, spawn_delay=args.spawn_delay,
-                    stepsize=args.stepsize, maxradius=args.maxradius, lure_duration=args.lure_duration)
+                    stepsize=args.stepsize, maxradius=args.maxradius, lure_duration=args.lure_duration,
+                    dont_move_map=args.dont_move_map)
         app.before_request(app.validate_request)
         app.set_current_location(position)
 
