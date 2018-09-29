@@ -60,6 +60,8 @@ class Pogom(Flask):
         kwargs.pop('maxradius')
         self.lure_duration = kwargs.get('lure_duration')
         kwargs.pop('lure_duration')
+        self.dont_move_map = kwargs.get('dont_move_map')
+        kwargs.pop('dont_move_map')
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
 
@@ -167,9 +169,10 @@ class Pogom(Flask):
         if lat == 0 and lng == 0:
             lat, lng = self.get_coords(pokemon, pokestops, gyms)
 
-        self.location_queue.put((lat, lng, 0))
-        self.set_current_location((lat, lng, 0))
-        log.info('Changing next location: %s,%s', lat, lng)
+        if not self.dont_move_map:
+            self.location_queue.put((lat, lng, 0))
+            self.set_current_location((lat, lng, 0))
+            log.info('Changing next location: %s,%s', lat, lng)
 
         deviceworker = DeviceWorker.get_by_id(uuid, lat, lng)
 

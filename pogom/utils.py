@@ -374,6 +374,9 @@ def get_args():
     parser.add_argument('-mr', '--maxradius',
                         help=('Maxim radius (factor times the stepsize), use 0 to disable'),
                         type=int, default=0)
+    parser.add_argument('-dmm', '--dont-move-map',
+                        help=("Don't update the map location on new scan location"),
+                        action='store_true', default=False)
     group = parser.add_argument_group('Database')
     group.add_argument(
         '--db-name', help='Name of the database to be used.', required=True)
