@@ -924,7 +924,7 @@ class Pogom(Flask):
 
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
-        if last_scanned > last_updated:
+        if last_scanned >= last_updated:
             radius = deviceworker['radius'] + 10
             deviceworkers = {}
             deviceworkers[uuid] = deviceworker
