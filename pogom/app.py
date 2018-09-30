@@ -922,22 +922,19 @@ class Pogom(Flask):
         if not deviceworker['last_scanned']:
             return "Device need to have posted data first"
 
+        needtojump = False
+
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
         difference = (last_scanned - last_updated).total_seconds()
         log.info("last_scanned: {}, last_updated: {}".format(last_scanned, last_updated))
         log.info("The difference between last_scanned and last_updated is " + str(difference) + " seconds.")
         if difference >= 0:
-            log.info("Difference is big enough, need to update radius, old radius: " + str(deviceworker['radius']))
-            deviceworker['radius'] = deviceworker['radius'] + 10
-            deviceworkers = {}
-            deviceworkers[uuid] = deviceworker
-            self.db_update_queue.put((DeviceWorker, deviceworkers))
-            log.info("New radius: " + str(deviceworker['radius']))
+            needtojump = True
 
-        return self.scan_loc()
+        return self.scan_loc(needtojump)
 
-    def scan_loc(self):
+    def scan_loc(self, needtojump=False):
         request_json = request.get_json()
 
         uuid = request_json.get('uuid')
@@ -964,6 +961,9 @@ class Pogom(Flask):
         direction = deviceworker['direction']
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
+
+        if needtojump:
+            radius += 10
 #        if last_updated < last_scanned:
 #        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
