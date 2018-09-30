@@ -927,23 +927,13 @@ class Pogom(Flask):
         difference = (last_scanned - last_updated).total_seconds()
         log.info("last_scanned: {}, last_updated: {}".format(last_scanned, last_updated))
         log.info("The difference between last_scanned and last_updated is " + str(difference) + " seconds.")
-        if difference > 3:
+        if difference >= 0:
             log.info("Difference is big enough, need to update radius, old radius: " + str(deviceworker['radius']))
             deviceworker['radius'] = deviceworker['radius'] + 10
             deviceworkers = {}
             deviceworkers[uuid] = deviceworker
             self.db_update_queue.put((DeviceWorker, deviceworkers))
             log.info("New radius: " + str(deviceworker['radius']))
-        elif difference >= 0:
-            log.info("Difference is small, pause moving")
-            deviceworker['last_updated'] = datetime.utcnow()
-            deviceworkers = {}
-            deviceworkers[uuid] = deviceworker
-            self.db_update_queue.put((DeviceWorker, deviceworkers))
-            d = {}
-            d['latitude'] = deviceworker['latitude']
-            d['longitude'] = deviceworker['longitude']
-            return jsonify(d)
 
         return self.scan_loc()
 
