@@ -927,8 +927,6 @@ class Pogom(Flask):
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
         difference = (last_scanned - last_updated).total_seconds()
-        log.info("last_scanned: {}, last_updated: {}".format(last_scanned, last_updated))
-        log.info("The difference between last_scanned and last_updated is " + str(difference) + " seconds.")
         if difference >= 0:
             needtojump = True
 
@@ -964,6 +962,14 @@ class Pogom(Flask):
 
         if needtojump:
             radius += 10
+            if direction == "U":
+                currentlatitude += 10 * self.args.stepsize
+            elif direction == "R":
+                currentlongitude += 10 * self.args.stepsize
+            elif direction == "D":
+                currentlatitude -= 10 * self.args.stepsize
+            elif direction == "L":
+                currentlongitude -= 10 * self.args.stepsize
 #        if last_updated < last_scanned:
 #        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
