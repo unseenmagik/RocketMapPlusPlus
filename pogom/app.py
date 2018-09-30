@@ -394,7 +394,7 @@ class Pogom(Flask):
                 if f['lure_expiration'] > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
                         f['lure_expiration'] / 1000.0) +
-                        timedelta(minutes=self.lure_duration))
+                        timedelta(minutes=self.args.lure_duration))
                 else:
                     lure_expiration = None
                 if f['active_pokemon_id'] > 0:
@@ -923,7 +923,7 @@ class Pogom(Flask):
             return "Device need to have posted data first"
 
         last_updated = deviceworker['last_updated']
-        last_scanned = deviceworker['last_scanned']
+        last_scanned = DeviceWorker['last_scanned']
         difference = (last_scanned - last_updated).total_seconds()
         log.info("The difference between last_scanned and last_updated is " + str(difference) + " seconds.")
         if difference > 3:
