@@ -377,6 +377,9 @@ def get_args():
     parser.add_argument('-dmm', '--dont-move-map',
                         help=("Don't update the map location on new scan location"),
                         action='store_true', default=False)
+    parser.add_argument('-tf', '--teleport-factor',
+                        help=('Teleport factor for the stepsize'),
+                        type=float, default=10)
     group = parser.add_argument_group('Database')
     group.add_argument(
         '--db-name', help='Name of the database to be used.', required=True)

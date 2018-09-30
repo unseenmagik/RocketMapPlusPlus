@@ -962,31 +962,31 @@ class Pogom(Flask):
 
         if needtojump:
             if direction == "U":
-                currentlatitude += 10 * self.args.stepsize
+                currentlatitude += self.args.teleport_factor * self.args.stepsize
             elif direction == "R":
-                currentlongitude += 10 * self.args.stepsize
-                if abs(currentlongitude - centerlongitude) <  10 * self.args.stepsize:
+                currentlongitude += self.args.teleport_factor * self.args.stepsize
+                if abs(currentlongitude - centerlongitude) <  self.args.teleport_factor * self.args.stepsize:
                     direction = "U"
-                    currentlatitude += 10 * self.args.stepsize
+                    currentlatitude += self.args.teleport_factor * self.args.stepsize
                     currentlongitude = centerlongitude
-                    radius += 10
+                    radius += self.args.teleport_factor
                     step = 0
             elif direction == "D":
-                currentlatitude -= 10 * self.args.stepsize
+                currentlatitude -= self.args.teleport_factor * self.args.stepsize
             elif direction == "L":
-                currentlongitude -= 10 * self.args.stepsize
+                currentlongitude -= self.args.teleport_factor * self.args.stepsize
 #        if last_updated < last_scanned:
 #        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
 
-        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 10) * self.args.stepsize or abs(longitude - currentlongitude) > (radius + 10) * self.args.stepsize):
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + self.args.teleport_factor) * self.args.stepsize or abs(longitude - currentlongitude) > (radius + self.args.teleport_factor) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
             step = 0
             direction = "U"
 
-        if (abs(centerlatitude - currentlatitude) > (radius + 10) * self.args.stepsize or abs(centerlongitude - currentlongitude) > (radius + 10) * self.args.stepsize):
+        if (abs(centerlatitude - currentlatitude) > (radius + self.args.teleport_factor) * self.args.stepsize or abs(centerlongitude - currentlongitude) > (radius + self.args.teleport_factor) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
