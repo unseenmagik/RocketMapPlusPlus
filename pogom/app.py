@@ -923,7 +923,7 @@ class Pogom(Flask):
             return "Device need to have posted data first"
 
         last_updated = deviceworker['last_updated']
-        last_scanned = DeviceWorker['last_scanned']
+        last_scanned = deviceworker['last_scanned']
         difference = (last_scanned - last_updated).total_seconds()
         log.info("The difference between last_scanned and last_updated is " + str(difference) + " seconds.")
         if difference > 3:
