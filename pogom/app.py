@@ -961,19 +961,20 @@ class Pogom(Flask):
         last_scanned = deviceworker['last_scanned']
 
         if needtojump:
-            radius += 10
             if direction == "U":
                 currentlatitude += 10 * self.args.stepsize
-                currentlongitude += 10 * self.args.stepsize
             elif direction == "R":
                 currentlongitude += 10 * self.args.stepsize
-                currentlatitude -= 10 * self.args.stepsize
+                if abs(currentlongitude - centerlongitude) <  10 * self.args.stepsize:
+                    direction = "U"
+                    currentlatitude += 10 * self.args.stepsize
+                    currentlongitude = centerlongitude
+                    radius += 10
+                    step = 0
             elif direction == "D":
                 currentlatitude -= 10 * self.args.stepsize
-                currentlongitude -= 10 * self.args.stepsize
             elif direction == "L":
                 currentlongitude -= 10 * self.args.stepsize
-                currentlatitude += 10 * self.args.stepsize
 #        if last_updated < last_scanned:
 #        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
