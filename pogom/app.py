@@ -936,6 +936,10 @@ class Pogom(Flask):
             log.info("New radius: " + str(deviceworker['radius']))
         elif difference >= 0:
             log.info("Difference is small, pause moving")
+            deviceworker['last_updated'] = datetime.utcnow()
+            deviceworkers = {}
+            deviceworkers[uuid] = deviceworker
+            self.db_update_queue.put((DeviceWorker, deviceworkers))
             d = {}
             d['latitude'] = deviceworker['latitude']
             d['longitude'] = deviceworker['longitude']
