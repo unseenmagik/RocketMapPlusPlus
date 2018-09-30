@@ -965,7 +965,7 @@ class Pogom(Flask):
                 currentlatitude += self.args.teleport_factor * self.args.stepsize
             elif direction == "R":
                 currentlongitude += self.args.teleport_factor * self.args.stepsize
-                if abs(currentlongitude - centerlongitude) <  self.args.teleport_factor * self.args.stepsize:
+                if abs(currentlongitude - centerlongitude) <  abs(currentlongitude - (centerlongitude + radius * self.args.stepsize)):
                     direction = "U"
                     currentlatitude += self.args.teleport_factor * self.args.stepsize
                     currentlongitude = centerlongitude
