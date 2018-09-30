@@ -12,7 +12,6 @@ from flask import Flask, abort, jsonify, render_template, request,\
     make_response, send_from_directory, json
 from flask.json import JSONEncoder
 from flask_compress import Compress
-from dateutil.parser import parse as parsedate
 
 from .models import (Pokemon, Gym, GymDetails, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
@@ -923,8 +922,8 @@ class Pogom(Flask):
         if not deviceworker['last_scanned']:
             return "Device need to have posted data first"
 
-        last_updated = parsedate(deviceworker['last_updated'])
-        last_scanned = parsedate(deviceworker['last_scanned'])
+        last_updated = deviceworker['last_updated']
+        last_scanned = deviceworker['last_scanned']
         if last_scanned > last_updated:
             radius = deviceworker['radius'] + 10
             deviceworkers = {}
