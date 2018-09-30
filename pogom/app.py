@@ -81,6 +81,7 @@ class Pogom(Flask):
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/scan_loc", methods=['POST'])(self.scan_loc)
+        self.route("/teleport_loc", methods=['POST'])(self.teleport_loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
         self.route("/search_control", methods=['GET'])(self.get_search_control)
@@ -393,7 +394,7 @@ class Pogom(Flask):
                 if f['lure_expiration'] > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
                         f['lure_expiration'] / 1000.0) +
-                        timedelta(minutes=self.lure_duration))
+                        timedelta(minutes=self.args.lure_duration))
                 else:
                     lure_expiration = None
                 if f['active_pokemon_id'] > 0:
@@ -907,7 +908,31 @@ class Pogom(Flask):
 
         return jsonify(d)
 
-    def scan_loc(self):
+    def teleport_loc(self):
+        request_json = request.get_json()
+
+        uuid = request_json.get('uuid')
+        if uuid == "":
+            return ""
+
+        latitude = round(request_json.get('latitude', 0), 5)
+        longitude = round(request_json.get('longitude', 0), 5)
+
+        deviceworker = DeviceWorker.get_by_id(uuid, latitude, longitude)
+        if not deviceworker['last_scanned']:
+            return "Device need to have posted data first"
+
+        needtojump = False
+
+        last_updated = deviceworker['last_updated']
+        last_scanned = deviceworker['last_scanned']
+        difference = (last_scanned - last_updated).total_seconds()
+        if difference >= 0:
+            needtojump = True
+
+        return self.scan_loc(needtojump)
+
+    def scan_loc(self, needtojump=False):
         request_json = request.get_json()
 
         uuid = request_json.get('uuid')
@@ -934,18 +959,34 @@ class Pogom(Flask):
         direction = deviceworker['direction']
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
+
+        if needtojump:
+            if direction == "U":
+                currentlatitude += self.args.teleport_factor * self.args.stepsize
+            elif direction == "R":
+                currentlongitude += self.args.teleport_factor * self.args.stepsize
+                if abs(currentlongitude - centerlongitude) <  self.args.teleport_factor * self.args.stepsize:
+                    direction = "U"
+                    currentlatitude += self.args.teleport_factor * self.args.stepsize
+                    currentlongitude = centerlongitude
+                    radius += self.args.teleport_factor
+                    step = 0
+            elif direction == "D":
+                currentlatitude -= self.args.teleport_factor * self.args.stepsize
+            elif direction == "L":
+                currentlongitude -= self.args.teleport_factor * self.args.stepsize
 #        if last_updated < last_scanned:
 #        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
 
-        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.args.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.args.stepsize):
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + self.args.teleport_factor) * self.args.stepsize or abs(longitude - currentlongitude) > (radius + self.args.teleport_factor) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
             step = 0
             direction = "U"
 
-        if (abs(centerlatitude - currentlatitude) > (radius + 1) * self.args.stepsize or abs(centerlongitude - currentlongitude) > (radius + 1) * self.args.stepsize):
+        if (abs(centerlatitude - currentlatitude) > (radius + self.args.teleport_factor) * self.args.stepsize or abs(centerlongitude - currentlongitude) > (radius + self.args.teleport_factor) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
