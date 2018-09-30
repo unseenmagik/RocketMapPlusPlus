@@ -924,11 +924,17 @@ class Pogom(Flask):
 
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
-        if last_scanned >= last_updated:
+        diff = (last_scanned - last_updated).total_seconds()
+        if diff > 3:
             radius = deviceworker['radius'] + 10
             deviceworkers = {}
             deviceworkers[uuid] = deviceworker
             self.db_update_queue.put((DeviceWorker, deviceworkers))
+        elif diff > 0:
+            d = {}
+            d['latitude'] = deviceworker['latitude']
+            d['longitude'] = deviceworker['longitude']
+            return jsonify(d)
 
         return self.scan_loc()
 
