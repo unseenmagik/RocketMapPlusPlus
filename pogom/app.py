@@ -979,14 +979,14 @@ class Pogom(Flask):
 #        if round(datetime.now().timestamp()) % 3 != 0:
 #            return "No need for a new update"
 
-        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 1) * self.args.stepsize or abs(longitude - currentlongitude) > (radius + 1) * self.args.stepsize):
+        if latitude != 0 and longitude != 0 and (abs(latitude - currentlatitude) > (radius + 10) * self.args.stepsize or abs(longitude - currentlongitude) > (radius + 10) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
             step = 0
             direction = "U"
 
-        if (abs(centerlatitude - currentlatitude) > (radius + 1) * self.args.stepsize or abs(centerlongitude - currentlongitude) > (radius + 1) * self.args.stepsize):
+        if (abs(centerlatitude - currentlatitude) > (radius + 10) * self.args.stepsize or abs(centerlongitude - currentlongitude) > (radius + 10) * self.args.stepsize):
             centerlatitude = latitude
             centerlongitude = longitude
             radius = 0
