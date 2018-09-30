@@ -12,6 +12,7 @@ from flask import Flask, abort, jsonify, render_template, request,\
     make_response, send_from_directory, json
 from flask.json import JSONEncoder
 from flask_compress import Compress
+from dateutil.parser import parse as parsedate
 
 from .models import (Pokemon, Gym, GymDetails, Pokestop, Raid, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
@@ -81,6 +82,7 @@ class Pogom(Flask):
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/scan_loc", methods=['POST'])(self.scan_loc)
+        self.route("/teleport_loc", methods=['POST'])(self.teleport_loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
         self.route("/search_control", methods=['GET'])(self.get_search_control)
@@ -906,6 +908,30 @@ class Pogom(Flask):
         d['lng'] = self.current_location[1]
 
         return jsonify(d)
+
+    def teleport_loc(self):
+        request_json = request.get_json()
+
+        uuid = request_json.get('uuid')
+        if uuid == "":
+            return ""
+
+        latitude = round(request_json.get('latitude', 0), 5)
+        longitude = round(request_json.get('longitude', 0), 5)
+
+        deviceworker = DeviceWorker.get_by_id(uuid, latitude, longitude)
+        if not deviceworker['last_scanned']:
+            return "Device need to have posted data first"
+
+        last_updated = parsedate(deviceworker['last_updated'])
+        last_scanned = parsedate(deviceworker['last_scanned'])
+        if last_scanned > last_updated:
+            radius = deviceworker['radius'] + 10
+            deviceworkers = {}
+            deviceworkers[uuid] = deviceworker
+            self.db_update_queue.put((DeviceWorker, deviceworkers))
+
+        return self.scan_loc()
 
     def scan_loc(self):
         request_json = request.get_json()
