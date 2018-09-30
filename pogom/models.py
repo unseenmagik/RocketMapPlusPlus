@@ -41,7 +41,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 40
+db_schema_version = 41
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -441,6 +441,7 @@ class Gym(LatLongModel):
     total_cp = SmallIntegerField()
     last_modified = DateTimeField(index=True)
     last_scanned = DateTimeField(default=datetime.utcnow, index=True)
+    is_in_battle = BooleanField(default=False)
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -3404,6 +3405,12 @@ def database_migrate(db, old_ver):
         )
         db.execute_sql(
             'ALTER TABLE `deviceworker` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+        )
+
+    if old_ver < 41:
+        migrate(
+            migrator.add_column('gym', 'is_in_battle',
+                                BooleanField(default=False))
         )
 
     # Always log that we're done.

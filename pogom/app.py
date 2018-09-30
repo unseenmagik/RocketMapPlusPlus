@@ -209,28 +209,6 @@ class Pogom(Flask):
         new_spawn_points = []
         sp_id_list = []
 
-        raidbosses = {
-            150 : 5,
-            76  : 4,
-            112 : 4,
-            131 : 4,
-            143 : 4,
-            65  : 3,
-            68  : 3,
-            106 : 3,
-            107 : 3,
-            123 : 3,
-            82  : 2,
-            108 : 2,
-            125 : 2,
-            126 : 2,
-            1   : 1,
-            4   : 1,
-            7   : 1,
-            129 : 1,
-            147 : 1
-        }
-
         now_date = datetime.utcnow()
 
         now_secs = date_secs(now_date)
@@ -502,6 +480,8 @@ class Pogom(Flask):
                     'last_modified':
                         datetime.utcfromtimestamp(
                             f['lastModifiedTimestampMs'] / 1000.0),
+                    'is_in_battle' :
+                        f.get('isInBattle', False)
                 }
 
                 gym_id = f['gym_id']
