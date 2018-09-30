@@ -925,6 +925,7 @@ class Pogom(Flask):
         last_updated = deviceworker['last_updated']
         last_scanned = deviceworker['last_scanned']
         diff = (last_scanned - last_updated).total_seconds()
+        log.info("The difference between last_scanned and last_updated is " + str(diff) = " seconds.")
         if diff > 3:
             deviceworker['radius'] = deviceworker['radius'] + 10
             deviceworkers = {}
