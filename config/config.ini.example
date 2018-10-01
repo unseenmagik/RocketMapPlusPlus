@@ -9,10 +9,10 @@
 # Required settings
 ###################
 
-gmaps-key:                     AIzaSyBKPhfMri_SNIHJdlEdTMBPbKkItgYNuiw
+gmaps-key:                     **nn**
 auth-service:                  ptc
-username:                      imKUCOH
-password:                      R%s4{o2T
+username:                      **n**
+password:                      **n**
 #hash-key:                      # Key for hash server (default=None)
 
 
@@ -40,9 +40,9 @@ scan-delay:                     10
 ###################
 
 db-host:                        localhost
-db-name:                        TLHMapping
-db-user:                        magik
-db-pass:                        T0a$tete2017l
+db-name:                        **n**
+db-user:                        **n**
+db-pass:                        **n**
 db-port:                        3306
 db-threads:                    1
 
@@ -145,7 +145,7 @@ gym-info                       # Enables detailed gym info collection. (default=
 # Webhook settings
 ##################
 
-webhook: http://95.179.202.148:5000                        # Webhook URL e.g. http://127.0.0.1:12345 or a list for multiple webhooks
+webhook:                        # Webhook URL e.g. http://127.0.0.1:12345 or a list for multiple webhooks
                                 # [http://127.0.0.1:1345,http://127.0.0.1:12346] (default=None)
 #wh-types:[]                    # List of events to be sent: pokemon, gym, raid, egg, tth, gym-info, pokestop, lure, captcha. (default= nothing)
 #wh-threads:                    # Number of webhook threads; increase if the webhook queue falls behind. (default=1)
